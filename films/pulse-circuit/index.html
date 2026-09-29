@@ -1,0 +1,521 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a100e}
+canvas{display:block;width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { clamp, lerp, spring, FEEL, rng } from '../../lib/motion.js';
+import { T, DUR, BPM, BEAT, E8 } from './timeline.js';
+
+const params = new URLSearchParams(location.search);
+const fmt = params.get('fmt') || '16x9';
+const SIZES = { '16x9':[1920,1080], '9x16':[1080,1920], '1x1':[1080,1080] };
+const [W,H] = SIZES[fmt] || SIZES['16x9'];
+const PORTRAIT = H > W;
+const P = Math.round(Math.min(W,H)/27);
+
+const canvas = document.getElementById('c');
+canvas.width = W;
+canvas.height = H;
+const ctx = canvas.getContext('2d');
+window.FILM = {w:W,h:H,dur:DUR};
+
+const fps = Math.max(1,Math.min(120,Number(params.get('fps'))||24));
+
+const C = {
+  bg:'#0a100e', grid:'#1a2420', dim:'#34413a', line:'#46534b',
+  paper:'#f3f0d8', amber:'#f0ae32', hot:'#ffcf5a',
+  red:'#ff6b4a', green:'#84c9a0', ink:'#101713'
+};
+
+const rand = rng(417);
+const dust = Array.from({length:64},()=>({
+  x:rand(), y:rand(), r:.7+rand()*1.8, a:.16+rand()*.3,
+  phase:rand()*Math.PI*2
+}));
+
+const ease = x => {
+  x=clamp(x,0,1);
+  return x*x*(3-2*x);
+};
+
+const beatPulse = (t,phase=0) => {
+  const b=((t/BEAT+phase)%1+1)%1;
+  return Math.pow(Math.max(0,1-b),3);
+};
+
+const txt = (s,x,y,size,color=C.paper,align='left',alpha=1,weight=600) => {
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle=color;
+  ctx.font=`${weight} ${size}px system-ui, sans-serif`;
+  ctx.textAlign=align;
+  ctx.textBaseline='middle';
+  ctx.fillText(s,x,y);
+  ctx.restore();
+};
+
+const line = (x1,y1,x2,y2,color=C.line,w=1,a=1) => {
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=w;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1);
+  ctx.lineTo(x2,y2);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const rect = (x,y,w,h,color,stroke=null,lw=1,a=1) => {
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.fillStyle=color;
+  if(color!=='transparent') ctx.fillRect(x,y,w,h);
+  if(stroke){
+    ctx.strokeStyle=stroke;
+    ctx.lineWidth=lw;
+    ctx.strokeRect(x,y,w,h);
+  }
+  ctx.restore();
+};
+
+const circle = (x,y,r,color,a=1) => {
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.arc(x,y,Math.max(.1,r),0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+};
+
+const path = (pts,color,w=1,a=1) => {
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=w;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+  ctx.beginPath();
+  pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+  ctx.stroke();
+  ctx.restore();
+};
+
+const label = (s,x,y,color=C.dim,size=P*.55,align='left') =>
+  txt(s,x,y,size,color,align,.95,550);
+
+const branchPulse = (x,y,dx,dy,r,color=C.hot,alpha=1,stretch=1.8) => {
+  const angle=Math.atan2(dy,dx);
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  ctx.lineCap='round';
+  ctx.strokeStyle=color;
+  ctx.globalAlpha=alpha*.72;
+  ctx.lineWidth=r*.72;
+  ctx.beginPath();
+  ctx.moveTo(-r*4.5,0);
+  ctx.lineTo(r*.45,0);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  ctx.scale(stretch,.72);
+  circle(0,0,r,color,alpha*.48);
+  circle(0,0,r*.56,C.paper,alpha);
+  ctx.restore();
+
+  circle(x,y,r*1.35,C.amber,alpha*.18);
+};
+
+function render(t) {
+  t=clamp(Number(t)||0,0,DUR);
+
+  const beat = beatPulse(t);
+  const pulse = beatPulse(t,.18);
+  const stage = beat*.22 + pulse*.12;
+
+  ctx.fillStyle=C.bg;
+  ctx.fillRect(0,0,W,H);
+
+  const margin=P*1.25;
+  const x0=margin;
+  const x1=W-margin;
+  const cx=W*.5;
+  const cy=PORTRAIT ? H*.42 : H*.44;
+  const railL=x0;
+  const railR=x1;
+
+  const titleY=PORTRAIT ? H*.18 : cy-P*5.2;
+  const meterY=PORTRAIT ? titleY+P*2.05 : cy-P*3.35;
+
+  const chamberW=Math.min(W*.30,P*9.5);
+  const chamberH=P*2.35;
+  const chamberX=cx-chamberW*.5;
+  const chamberY=cy-chamberH*.5;
+
+  const split={
+    x:cx+chamberW*.5+P*1.15,
+    y:cy
+  };
+
+  const cross={
+    x:Math.min(W-P*4.8,cx+chamberW*.5+P*5.1),
+    y:cy
+  };
+
+  const out={x:railR,y:cy};
+
+  const intro=ease(t/1.2);
+  const chamberIn=ease((t-4.1)/1.7);
+  const chamberOut=ease((t-10.3)/1.4);
+  const splitIn=ease((t-12)/1.3);
+  const crossIn=ease((t-15.7)/1.2);
+  const resolve=ease((t-22)/1.6);
+  const sleep=ease((t-27)/3);
+  const opening=1-ease(t/2.2);
+  const closing=ease((t-26.8)/2.4);
+
+  for(let i=0;i<dust.length;i++){
+    const d=dust[i];
+    const tw=.55+.45*Math.sin(t*1.7+d.phase);
+    const activeX=t<12
+      ? lerp(railL,split.x,clamp((t-1)/11,0,1))
+      : t<16 ? split.x : cross.x;
+    const activeY=cy;
+    const dx=activeX-d.x*W;
+    const dy=activeY-d.y*H;
+    const converge=clamp(t/5,0,1)*.34;
+    const px=d.x*W+dx*converge;
+    const py=d.y*H+dy*converge;
+    circle(px,py,Math.max(.8,d.r*P*.085),C.dim,d.a*tw);
+  }
+
+  line(x0,cy-P*6.3,x1,cy-P*6.3,C.grid,1,.85);
+  line(x0,cy+P*6.3,x1,cy+P*6.3,C.grid,1,.85);
+
+  txt('PULSE',x0,titleY,P*1.6,C.paper,'left',1,760);
+  txt('/ CIRCUIT',x0+P*6.25,titleY,P*.75,C.amber,'left',.98,650);
+  label('SIGNAL STUDY  /  01',x0,titleY+P*.85,C.dim,P*.55);
+
+  const amp=(.2+.8*Math.abs(Math.sin(t*2.1)))*(1+beat*.5);
+  const meterX=x0;
+  const meterW=P*7.2;
+
+  for(let i=0;i<18;i++){
+    const h=P*(.16+(.2+.8*Math.abs(Math.sin(i*.72+t*3.2)))*.42*amp);
+    rect(
+      meterX+i*meterW/18,
+      meterY-h*.5,
+      meterW/25,
+      h,
+      C.amber,
+      null,
+      1,
+      .28+.62*(.5+.5*Math.sin(t*2*Math.PI/BEAT)**2)
+    );
+  }
+
+  label('AMP',meterX+meterW+P*.45,meterY,C.dim,P*.52);
+  txt(
+    `${Math.round(amp*99).toString().padStart(2,'0')}`,
+    meterX+meterW+P*1.55,
+    meterY,
+    P*.62,
+    C.paper,
+    'left',
+    .95,
+    650
+  );
+
+  const rulerY=PORTRAIT ? H-P*4.0 : cy+P*6.8;
+  line(x0,rulerY,x1,rulerY,C.dim,1,.8);
+  const elapsed=(t/DUR)*(x1-x0);
+
+  for(let i=0;i<=16;i++){
+    const xx=x0+(x1-x0)*i/16;
+    const major=i%4===0;
+    line(xx,rulerY,xx,rulerY+(major?P*.34:P*.16),C.line,1,.9);
+    if(major) label(`${Math.round(DUR*i/16)}s`,xx,rulerY+P*.58,C.dim,P*.48,'center');
+  }
+
+  line(x0+elapsed,rulerY-P*.18,x0+elapsed,rulerY+P*.28,C.amber,2,.98);
+  label(`TIME ${t.toFixed(2)}s`,x1,rulerY+P*.58,C.amber,P*.48,'right');
+
+  const railAlpha=.32+.58*intro-.3*sleep+stage;
+  const railWidth=P*(.09+.035*stage);
+
+  line(railL,cy,railR,cy,C.line,railWidth,railAlpha);
+  line(railL,cy,railR,cy,C.amber,railWidth*.55,stage*.45);
+
+  for(let i=0;i<=32;i++){
+    const xx=lerp(railL,railR,i/32);
+    const major=i%8===0;
+    const nr=major?P*.105:P*.055;
+    circle(xx,cy,nr,C.dim,railAlpha);
+    if(stage>.02) circle(xx,cy,nr+P*.1*stage,C.amber,stage*.24);
+  }
+
+  circle(railL,cy,P*.22,C.paper,.7+.3*(1-sleep));
+  circle(railR,cy,P*.22,C.amber,.3+.45*sleep);
+
+  label('IN',railL,cy+P*.72,C.dim,P*.5,'center');
+  label('OUT',railR,cy+P*.72,C.dim,P*.5,'center');
+
+  const chamberActive=clamp(chamberIn*(1-chamberOut),0,1);
+  const phaseShift=P*.7*(.5+.5*Math.sin(t*2*Math.PI/BEAT));
+
+  rect(
+    chamberX,
+    chamberY,
+    chamberW,
+    chamberH,
+    'transparent',
+    C.amber,
+    P*.045,
+    .28+.62*chamberActive
+  );
+
+  for(let i=0;i<6;i++){
+    const drift=phaseShift-P*.35;
+    const xx=chamberX+chamberW*(i+1)/7+drift;
+    line(
+      xx,
+      chamberY+P*.22,
+      xx,
+      chamberY+chamberH-P*.22,
+      C.amber,
+      P*.035,
+      .3+.58*chamberActive
+    );
+  }
+
+  label('PHASE',cx,chamberY-P*.58,C.amber,P*.46,'center');
+
+  if(t>=4.1&&t<12.2){
+    for(let i=3;i>=0;i--){
+      const delay=i*BEAT*.14;
+      const age=t-(4.35+delay);
+      if(age>=0&&age<2.1){
+        const ex=lerp(railL+P*1.2,chamberX+chamberW*.5,clamp(age/2.1,0,1));
+        const ey=cy+Math.sin(age*7+i)*P*.13;
+        const a=(1-age/2.1)*chamberActive*(i===0?1:.42);
+        circle(ex,ey,P*(.19-i*.016),i===0?C.hot:C.amber,a);
+        if(i===0) line(ex-P*.7,ey,ex+P*.7,ey,C.hot,P*.16,a);
+      }
+    }
+  }
+
+  const upper={x:split.x+P*3.0,y:cy-P*2.55};
+  const lower={x:split.x+P*3.0,y:cy+P*2.55};
+  const join={x:cross.x+P*1.45,y:cy};
+
+  const upperPath=[split,upper,{x:cross.x,y:upper.y},join];
+  const lowerPath=[split,lower,{x:cross.x,y:lower.y},join];
+
+  const branchAlpha=.55+.4*splitIn;
+  path(upperPath,C.amber,P*.105,branchAlpha);
+  path(lowerPath,C.amber,P*.105,branchAlpha);
+  path(upperPath,C.paper,P*.035,.42+.32*splitIn);
+  path(lowerPath,C.paper,P*.035,.42+.32*splitIn);
+
+  const panelSpring=clamp(spring(t-15.8,...FEEL.base),0,1);
+  const panelFade=1-clamp((t-22)/1.1,0,1);
+  const panelReveal=panelSpring*panelFade;
+
+  const panelW=Math.min(W*.58,P*14);
+  const panelH=PORTRAIT?P*6.0:P*4.9;
+  const panelX=cx-panelW*.5;
+  const panelBaseY=cy+P*2.05;
+  const panelY=panelBaseY+P*3.4*(1-panelReveal);
+
+  if(panelReveal>.01){
+    rect(panelX,panelY,panelW,panelH,'#0d1511',C.amber,P*.055,.94*panelReveal);
+
+    // Stacked header prevents collision at narrow panel widths.
+    label('EVENT  /  IMPOSSIBLE CROSSING',
+      panelX+P*.35,panelY+P*.48,C.amber,P*.52);
+    label('ORTHOGRAPHIC Z VIEW',
+      panelX+panelW-P*.35,panelY+P*1.02,C.dim,P*.46,'right');
+
+    const left=panelX+P*.65;
+    const right=panelX+panelW-P*.65;
+    const aY=panelY+P*2.05;
+    const bY=panelY+P*3.42;
+
+    // Header → gap → A rail → midline → B rail → footer labels.
+    line(left,aY,right,aY,C.paper,P*.18,.98*panelReveal);
+    line(left,aY+P*.12,right,aY+P*.12,C.hot,P*.035,.8*panelReveal);
+
+    line(left,bY,right,bY,C.amber,P*.18,.95*panelReveal);
+    line(left,bY+P*.12,right,bY+P*.12,C.red,P*.035,.7*panelReveal);
+
+    line(
+      panelX+panelW*.5,
+      aY+P*.2,
+      panelX+panelW*.5,
+      bY-P*.2,
+      C.green,
+      P*.055,
+      .9*panelReveal
+    );
+
+    circle(panelX+panelW*.5,aY,P*.13,C.hot,.95*panelReveal);
+    circle(panelX+panelW*.5,bY,P*.13,C.amber,.85*panelReveal);
+
+    label('VISIBLE DEPTH GAP',
+      right,(aY+bY)*.5,C.green,P*.45,'right');
+
+    const footerY=panelY+panelH-P*.42;
+    label('A / OVER',left,footerY,C.paper,P*.54);
+    label('B / UNDER',right,footerY,C.amber,P*.54,'right');
+  }
+
+  const crossingActive=clamp((t-16.2)/4.9,0,1);
+  const zBeat=.5+.5*Math.sin(2*Math.PI*t/BEAT);
+
+  if(t>=16.1){
+    const gap=P*.48+P*.25*zBeat;
+
+    line(cross.x-P*1.05,cross.y,cross.x-gap,cross.y,C.amber,P*.17,.95*crossingActive);
+    line(cross.x+gap,cross.y,cross.x+P*1.05,cross.y,C.amber,P*.17,.95*crossingActive);
+
+    ctx.save();
+    ctx.strokeStyle=C.paper;
+    ctx.lineWidth=P*.15;
+    ctx.globalAlpha=.36+.62*crossingActive;
+    ctx.beginPath();
+    ctx.moveTo(cross.x-P*1.05,cross.y-P*.02);
+    ctx.quadraticCurveTo(cross.x,cross.y-P*.88,cross.x+P*1.05,cross.y-P*.02);
+    ctx.stroke();
+    ctx.restore();
+
+    circle(cross.x,cross.y,P*.18,C.hot,crossingActive);
+  }
+
+  label('SPLIT',split.x,split.y-P*.85,C.amber,P*.52,'center');
+  label('X / Z',cross.x,cross.y-P*1.02,C.paper,P*.48,'center');
+
+  const railEnd=Math.min(
+    split.x-P*.3,
+    lerp(railL+P*1.4,split.x-P*.3,ease((t-1.1)/11))
+  );
+
+  if(t>=1.1&&t<12.2){
+    const phaseT=clamp((t-1.1)/11,0,1);
+    const speed=clamp(.32+Math.abs(Math.sin((t-1.1)*1.6))*.95,.25,1.25);
+    const stretch=1+speed*.5;
+    const squash=1/(1+speed*.18);
+
+    for(let i=12;i>=1;i--){
+      const wx=railEnd-i*P*.23;
+      const fade=Math.max(0,1-i/13)*(1-phaseT*.4);
+      if(wx>railL&&wx<split.x){
+        circle(wx,cy,P*.095,i<4?C.amber:C.hot,fade*.55);
+      }
+    }
+
+    const r=P*(.2+.07*beat+.045*pulse);
+    ctx.save();
+    ctx.translate(railEnd,cy);
+    ctx.scale(stretch,squash);
+    circle(0,0,r,C.hot,.4);
+    circle(0,0,r*.58,C.paper,1);
+    ctx.restore();
+
+    line(railEnd-P*.78*stretch,cy,railEnd+P*.3,cy,C.hot,P*.18,.95);
+    circle(railEnd,cy,r+P*.18*pulse,C.amber,pulse*.28);
+  }
+
+  if(t>=12.1&&t<16.1){
+    const q=ease((t-12.1)/4);
+    const px=lerp(split.x,upper.x,q);
+    const py=lerp(split.y,upper.y,q);
+    const dx=upper.x-split.x;
+    const dy=upper.y-split.y;
+    branchPulse(px,py,dx,dy,P*(.2+.05*pulse),C.hot,.9,1.75);
+  }
+
+  if(t>=16.1&&t<22.2){
+    const q=clamp((t-16.1)/6.1,0,1);
+    const px=lerp(upper.x,join.x,q);
+    const py=lerp(upper.y,join.y,q);
+    const dx=join.x-upper.x;
+    const dy=join.y-upper.y;
+    branchPulse(px,py,dx,dy,P*(.2+.06*pulse),C.hot,.92,1.85);
+  }
+
+  if(t>=22.2){
+    const q=ease((t-22.2)/4.8);
+    const px=lerp(join.x,out.x,q);
+    circle(px,cy,P*.2,C.hot,.82);
+    circle(px,cy,P*.09,C.paper,1);
+  }
+
+  const accentX=t<12?railEnd:(t<16?split.x:cross.x);
+  if(beat>.04&&t>1){
+    circle(accentX,cy,P*(.28+beat*.24),C.amber,beat*.18);
+    circle(accentX,cy,P*(.5+beat*.28),C.hot,beat*.045);
+  }
+
+  // In portrait, place the event card directly below the ruler.
+  const cardY=PORTRAIT ? rulerY+P*1.35 : cy+P*8.25;
+  const events=[
+    [0,'ARM / IDLE'],
+    [2,'SIGNAL ACQUIRED'],
+    [5,'PHASE CHAMBER'],
+    [9,'DELAY / ECHO'],
+    [12,'SPLIT EVENT'],
+    [16,'DEPTH CONFLICT'],
+    [19,'OVERPASS PROVED'],
+    [23,'RECOMBINE'],
+    [27,'SYSTEM SLEEP']
+  ];
+
+  let ev=events[0];
+  for(const e of events) if(t>=e[0]) ev=e;
+
+  label(`EVENT  ${ev[1]}`,x0,cardY,C.amber,P*.62);
+  label(
+    `FRAME ${String(Math.floor(t*fps)%10000).padStart(4,'0')}  /  ${fps} FPS`,
+    x1,
+    cardY,
+    C.dim,
+    P*.5,
+    'right'
+  );
+
+  const bookendAlpha=Math.max(opening,closing);
+
+  if(bookendAlpha>.01){
+    txt('ONE SIGNAL.',cx,cy-P*2.25,P*1.05,C.paper,'center',bookendAlpha,700);
+    txt('TWO DEPTHS.',cx,cy-P*1.12,P*.72,C.amber,'center',bookendAlpha,650);
+  }
+
+  if(t>27){
+    const k=ease((t-27)/3);
+    circle(railL,cy,P*(.25+k*.3),C.paper,(1-k)*.42);
+    circle(railR,cy,P*(.25+k*.3),C.amber,(1-k)*.38);
+  }
+}
+
+window.seek = t => {
+  render(t);
+  return true;
+};
+
+window.READY = true;
+</script>
+</body>
+</html>
