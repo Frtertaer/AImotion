@@ -38,7 +38,7 @@ const s = JSON.parse(json);
 
 // Pass 2: apply measured values, mux (input 0 is the picture, audio starts at 1).
 const ln = `loudnorm=I=${I}:TP=-1.5:LRA=11:measured_I=${s.input_i}:measured_TP=${s.input_tp}` +
-  `:measured_LRA=${s.input_lra}:measured_thresh=${s.input_thresh}:offset=${s.target_offset}:linear=true,aresample=48000`;
+  `:measured_LRA=${s.input_lra}:measured_thresh=${s.input_thresh}:offset=${s.target_offset}:linear=true,aresample=48000,aformat=channel_layouts=stereo`;
 execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', pic, ...inputs, '-filter_complex', `${graph(1)},${ln}[a]`,
   '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out], { stdio: 'inherit' });
 console.log(`wrote ${out} (mix measured ${s.input_i} LUFS -> target ${I})`);
