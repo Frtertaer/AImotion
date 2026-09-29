@@ -8,7 +8,7 @@ import { dirname, join, normalize } from 'node:path';
 const args = process.argv.slice(2);
 const promptFile = args[0];
 const oi = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const model = oi('model', 'claude-opus-5');
+const model = oi('model', 'claude-opus-5.5');
 const outdir = oi('outdir', '.');
 const maxTokens = Number(oi('maxtok', 48000));
 const imgIdx = args.indexOf('--img');

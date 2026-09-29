@@ -39,6 +39,16 @@ Z panel now renders (verified at t=19 full-res). Panel header labels
 collided → stacked on two lines; pulse on the branch given the stretched body
 + wake of the rail pulse; 9:16 event card moved under the ruler.
 
+## Round 5 — benchmark pass (claude-opus-5.5)
+
+The film was measured against `docs/benchmark.md` (Motion Awards 2025
+winners, VGT letterform winners, TENDRIL/Elastic/Territory). Upgrade: each
+phase now transforms the signal's own visual language — channels A and B have
+distinct texture (thin dashed fast vs thick slow), the pulse is a stretched
+comet, the lockup slash transmits light during the crossing, exhibition pass
+(scanlines, vignette, `rng(seed)` grain). Determinism re-verified; one name
+fix (`beat`→`b`) applied after a check-seek catch.
+
 Final state: all axes ≥8 by the model's own scoring; 12/12 deterministic;
 three formats re-laid-out from `?fmt`; `?fps=` drives the visible frame
 counter so the 60/90/180 fps cuts are per-rate distinct.
