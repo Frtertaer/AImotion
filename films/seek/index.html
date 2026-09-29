@@ -1,0 +1,578 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SEEK</title>
+<style>html,body{margin:0;background:#0C0E0B}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { clamp, lerp, spring, track, rng, FEEL } from '../../lib/motion.js';
+import { T, DUR, BPM, BEAT, E8, BAR } from './timeline.js';
+
+// ---------- format: ?fmt=16x9 | 9x16 | 1x1 — everything is laid out from W, H, P ----------
+const SIZES = { '16x9': [1920, 1080], '9x16': [1080, 1920], '1x1': [1080, 1080] };
+const QS = new URLSearchParams(location.search);
+const fmt = QS.get('fmt') || '16x9';
+const FPS = parseFloat(QS.get('fps')) || 180;          // the film knows its own frame rate
+const TOTAL_F = Math.round(FPS * 30);                  // frames this cut contains
+const [W, H] = SIZES[fmt] || SIZES['16x9'];
+window.FILM = { w: W, h: H, dur: DUR, fmt };
+const cv = document.getElementById('c');
+cv.width = W; cv.height = H;
+const screenG = cv.getContext('2d');
+const wc = document.createElement('canvas');          // world buffer (rewind needs a bitmap)
+wc.width = W; wc.height = H;
+const wg = wc.getContext('2d');
+let g = screenG;                                      // every draw helper renders to `g`; world() runs on wg
+
+const BG = '#0C0E0B', INK = '#E9EFE2', DIM = '#5B6B54', LINE = '#263024';
+const ACCENT = '#A8FF3E', WARN = '#FF4D2E';
+const MONO = (px, w = 400) => `${w} ${px}px "JetBrains Mono", "DejaVu Sans Mono", monospace`;
+const DISP = (px, w = 900) => `${w} ${px}px "Liberation Sans Narrow", "Arial Narrow", sans-serif`;
+
+const P = Math.round(Math.min(W, H) / 27);
+const M = 1.4 * P;
+const VERT = H > W;                                  // vertical formats flip SPRING/PIPE axes
+const RULE = { x0: M, x1: W - M, y: H - 2.6 * P };   // the ruler lives at the bottom of the world
+const STAGE_H = RULE.y - M;                          // everything happens above the ruler
+
+// ---------- the clock: diegetic time tau, rewound during the last act ----------
+const REW = T.hold / (T.black - T.hold);             // ~10x backwards
+const tau = (t) => (t < T.hold ? t : Math.max(0, T.hold - (t - T.hold) * REW));
+const playheadP = (tt) => clamp(tt / DUR);           // 0..1 along the ruler
+const playheadX = (tt) => lerp(RULE.x0, RULE.x1, playheadP(tt));
+
+// ---------- shared atoms ----------
+function hairline(x, alpha = 0.2, x2 = null) {
+  g.strokeStyle = `rgba(168,255,62,${alpha})`; g.lineWidth = Math.max(1, 0.045 * P);
+  g.beginPath(); g.moveTo(x, M * 0.8); g.lineTo(x2 ?? x, RULE.y + 1.1 * P); g.stroke();
+}
+function playhead(tt) {
+  const x = playheadX(tt);
+  hairline(x, 0.16);
+  // bright segment inside the ruler + pointer triangle into the stage
+  g.strokeStyle = ACCENT; g.lineWidth = Math.max(2, 0.09 * P);
+  g.beginPath(); g.moveTo(x, RULE.y - 1.5 * P); g.lineTo(x, RULE.y + 1.1 * P); g.stroke();
+  g.fillStyle = ACCENT;
+  g.beginPath(); g.moveTo(x - 0.34 * P, RULE.y - 2.0 * P); g.lineTo(x + 0.34 * P, RULE.y - 2.0 * P);
+  g.lineTo(x, RULE.y - 1.42 * P); g.fill();
+  // diegetic HUD: the playhead carries its own timecode
+  g.font = MONO(0.62 * P, 500); g.fillStyle = ACCENT; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillText(`t=${tt.toFixed(3)}`, x + 0.5 * P, RULE.y + 1.95 * P);
+}
+function ruler(tt) {
+  const up = spring(tt - T.rulerDock, ...FEEL.base);
+  g.save(); g.translate(0, (1 - up) * (2.2 * P));
+  g.globalAlpha = up;
+  g.strokeStyle = LINE; g.lineWidth = Math.max(1.5, 0.05 * P);
+  g.beginPath(); g.moveTo(RULE.x0, RULE.y); g.lineTo(RULE.x1, RULE.y); g.stroke();
+  const stamped = T.tickStamp.filter((s) => tt >= s).length;      // ticks stamp on 8ths
+  const nTicks = tt < T.tickStamp[0] ? 0 : Math.round(16 * stamped + 16 * clamp((tt - T.tickStamp[3]) / E8));
+  for (let i = 0; i < Math.min(64, nTicks); i++) {
+    const x = lerp(RULE.x0, RULE.x1, i / 64);
+    const h = i % 4 === 0 ? 1.0 : 0.5;
+    const grow = spring(tt - T.tickStamp[0] - i * 0.008, 300, 26);
+    g.strokeStyle = i % 4 === 0 ? DIM : LINE;
+    g.lineWidth = Math.max(1, 0.04 * P);
+    g.beginPath(); g.moveTo(x, RULE.y); g.lineTo(x, RULE.y - h * P * grow); g.stroke();
+  }
+  g.fillStyle = DIM; g.font = MONO(0.5 * P);
+  for (let b = 0; b < 16; b += 4) {
+    const x = lerp(RULE.x0, RULE.x1, b / 16);
+    g.fillText(`b${String(b + 1).padStart(2, '0')}`, x + 0.3 * P, RULE.y - 1.2 * P);
+  }
+  // act zones labelled on the timeline itself; the zone under the playhead lights up
+  g.font = MONO(0.48 * P, 700); g.textBaseline = 'alphabetic';
+  ACTS.forEach(([zt, name], zi) => {
+    const zEnd = zi + 1 < ACTS.length ? ACTS[zi + 1][0] : DUR;
+    if (zt > tt) return;                                   // future zones stay unwritten
+    const lit = tt >= zt && tt < zEnd;
+    g.fillStyle = lit ? ACCENT : LINE;
+    g.textAlign = 'left';
+    g.fillText(name, playheadX(zt) + 0.35 * P, RULE.y + 0.72 * P);
+    if (lit) {
+      g.fillStyle = 'rgba(168,255,62,0.16)';
+      g.fillRect(playheadX(zt) + 0.15 * P, RULE.y + 0.95 * P, playheadX(Math.min(zEnd, DUR)) - playheadX(zt), 0.09 * P);
+    }
+  });
+  g.restore();
+}
+// live probe readout above the ruler — what the engine is doing at this t
+function statusLine(tt) {
+  let s = null;
+  if (tt >= T.samples && tt < T.spring) {
+    const i = Math.min(11, Math.floor((tt - T.cells[0]) / BEAT));
+    s = tt < T.cellsOut ? `> seek(${Math.max(0, tt).toFixed(3)}) → f${String(Math.round(i * TOTAL_F / 12)).padStart(4, '0')}.png` : '> 12 frames sampled';
+  } else if (tt >= T.spring && tt < T.pipe) s = `> spring k=120 d=11.6 ζ=0.53 overshoot≈14%`;
+  else if (tt >= T.pipe && tt < T.format) {
+    const n = Math.min(TOTAL_F, Math.round((tt - T.stream[0]) * (TOTAL_F / 3)));
+    s = tt < T.mp4Drop ? `> image2pipe ${n}/${TOTAL_F}f · ${FPS}fps` : '> wrote final.mp4';
+  } else if (tt >= T.format && tt < T.lockup) {
+    s = `> layout() → ${['16:9', '1:1', '9:16'][Math.min(2, Math.max(0, T.morphs.filter((m) => tt >= m).length - 1))]}`;
+  } else if (tt >= T.lockup && tt < T.rewind) s = '> contact.png · poster.png · review 10/10';
+  if (!s) return;
+  g.font = MONO(0.56 * P, 500); g.fillStyle = DIM; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillText(s, M, RULE.y - 1.9 * P);
+}
+const text = (s, x, y, font, fill, align = 'left', alpha = 1) => {
+  g.globalAlpha = alpha; g.font = font; g.fillStyle = fill; g.textAlign = align; g.textBaseline = 'alphabetic';
+  g.fillText(s, x, y); g.globalAlpha = 1;
+};
+
+// act boundaries, shared by the ruler zones and the chapter header
+const ACTS = [[0, 'TICK'], [T.samples, 'SAMPLES'], [T.spring, 'SPRING'], [T.pipe, 'PIPE'], [T.format, 'FORMAT'], [T.lockup, 'LOCKUP'], [T.rewind, 'REWIND']];
+// chapter header, top-left: one slot, hard cut between acts (HUD-style, no overlap)
+function actTitle(tt) {
+  let cur = -1;
+  for (let i = 0; i < ACTS.length; i++) if (tt >= ACTS[i][0]) cur = i;
+  if (cur <= 0) return;                                    // TICK has no header
+  const in_ = spring(tt - ACTS[cur][0], ...FEEL.snappy);
+  const name = ACTS[cur][1], idx = `0${cur}`;
+  g.save(); g.globalAlpha = in_;
+  g.fillStyle = ACCENT; g.fillRect(M, M * 0.95, 0.3 * P, 2.1 * P * in_);
+  text(idx, M + 0.7 * P, M * 0.95 + 0.62 * P, MONO(0.6 * P, 700), DIM);
+  text(name, M + 0.7 * P, M * 0.95 + 1.9 * P, DISP(2.0 * P), INK);
+  g.restore();
+}
+
+// ---------- TICK: the renderer probes every t ----------
+function actTick(tt) {
+  if (tt > T.samples) return;
+  let v = 0;
+  if (tt >= T.raceTo && tt < T.raceBack) v = DUR * spring(tt - T.raceTo, 140, 22); // races past 30, settles
+  const big = tt < T.raceBack ? 1 : Math.max(0, 1 - (tt - T.raceBack) / 0.1);
+  if (big > 0) {
+    const px = Math.min(3.4 * P, (W - 4 * M) / 8);
+    g.save(); g.translate(W / 2, STAGE_H * 0.46); g.scale(big, big);
+    g.font = MONO(px, 700); g.fillStyle = tt < T.raceBack ? INK : ACCENT;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(`t = ${v.toFixed(3)}`, 0, 0);
+    g.restore();
+    text('seek(t)', W / 2, STAGE_H * 0.46 + px * 0.85, MONO(0.9 * P, 500), DIM, 'center');
+  }
+}
+
+// ---------- SAMPLES: the playhead calls seek() 12 times, frames pop in ----------
+const CELLS_N = 12;
+const cellSlots = () => {
+  // grid shape per format: 16:9 → 6x2, 1x1 → 4x3, 9:16 → 3x4
+  const cols = fmt === '9x16' ? 3 : fmt === '1x1' ? 4 : 6;
+  const rows = CELLS_N / cols;
+  const gap = 0.5 * P;
+  const cw = Math.min((fmt === '9x16' ? 7.4 : 5.6) * P, (W - 2 * M - (cols - 1) * gap) / cols);
+  const ch = cw * 0.62;
+  const gw = cols * cw + (cols - 1) * gap, gh = rows * ch + (rows - 1) * gap;
+  const x0 = (W - gw) / 2 + cw / 2, y0 = STAGE_H * (VERT ? 0.46 : 0.44) - gh / 2 + ch / 2;
+  return Array.from({ length: CELLS_N }, (_, i) => ({
+    x: x0 + (i % cols) * (cw + gap), y: y0 + Math.floor(i / cols) * (ch + gap), w: cw, h: ch,
+  }));
+};
+const SLOTS = cellSlots();
+
+// mini-scenes: what a sampled frame contains — sketches of this film's own acts
+function miniScene(k, x, y, w, h, tt) {
+  g.save(); g.beginPath(); g.rect(x - w / 2, y - h / 2, w, h); g.clip();
+  const mx = x - w / 2, my = y - h / 2, u = w / 24;
+  g.strokeStyle = '#8CA37F'; g.lineWidth = Math.max(1, u * 0.35); g.fillStyle = '#8CA37F';
+  const kind = k % 6;
+  if (kind === 0) {                                     // digits
+    g.font = MONO(3.4 * u, 700); g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(`${(tt % DUR).toFixed(1)}`, x, y);
+  } else if (kind === 1) {                              // ruler + playhead
+    const ry = my + h * 0.72;
+    g.beginPath(); g.moveTo(mx + u, ry); g.lineTo(mx + w - u, ry); g.stroke();
+    for (let i = 0; i < 12; i++) { const tx = mx + u + (w - 2 * u) * i / 11; g.beginPath(); g.moveTo(tx, ry); g.lineTo(tx, ry - (i % 4 ? 1.6 : 2.8) * u); g.stroke(); }
+    const px = mx + u + (w - 2 * u) * ((tt % DUR) / DUR);
+    g.strokeStyle = ACCENT; g.beginPath(); g.moveTo(px, my + h * 0.25); g.lineTo(px, ry + u); g.stroke();
+  } else if (kind === 2) {                              // spring path
+    const tx = mx + w * 0.8; g.strokeStyle = DIM; g.setLineDash([u * 0.5, u * 0.5]);
+    g.beginPath(); g.moveTo(tx, my + h * 0.2); g.lineTo(tx, my + h * 0.8); g.stroke(); g.setLineDash([]);
+    for (let i = 0; i < 8; i++) { const bx = mx + w * 0.15 + (w * 0.65) * spring(i * 0.09 + (tt % 1), 120, 11.6); g.fillStyle = i ? DIM : ACCENT; g.beginPath(); g.arc(bx, y, u * (i ? 0.7 : 1.1), 0, 7); g.fill(); }
+  } else if (kind === 3) {                              // pipe: squares between rails
+    g.beginPath(); g.moveTo(mx + u, y - h * 0.28); g.lineTo(mx + w - u, y - h * 0.28);
+    g.moveTo(mx + u, y + h * 0.28); g.lineTo(mx + w - u, y + h * 0.28); g.stroke();
+    for (let i = 0; i < 3; i++) { const sx = mx + u + (((tt * 0.5 + i / 3) % 1) * (w - 2 * u)); g.fillStyle = i ? DIM : ACCENT; g.fillRect(sx - u * 0.9, y - u * 0.9, u * 1.8, u * 1.8); }
+  } else if (kind === 4) {                              // three aspects
+    const aw = [w * 0.38, w * 0.2, w * 0.11], ah = [h * 0.24, h * 0.2 * (w / h), h * 0.38];
+    let ax = mx + (w - (aw[0] + aw[1] + aw[2] + 2 * u)) / 2;
+    for (let i = 0; i < 3; i++) { const hh = Math.min(ah[i], h * 0.5); g.strokeStyle = i ? DIM : ACCENT; g.strokeRect(ax, y - hh / 2, aw[i], hh); ax += aw[i] + u; }
+  } else {                                              // wordmark bars
+    for (let i = 0; i < 10; i++) { const bh = (2 + 5 * Math.abs(Math.sin(i * 1.7 + tt * 3))) * u; g.fillStyle = i === 4 ? ACCENT : INK; g.fillRect(mx + u + i * 2.2 * u, my + h * 0.75 - bh, 1.4 * u, bh); }
+  }
+  g.restore();
+}
+
+// cell segment machine: slot → ruler tick → pipe path → mp4 cell
+function cellPos(i, tt) {
+  const slot = SLOTS[i];
+  const tickX = lerp(RULE.x0, RULE.x1, (i * 5 + 2) / 64), tickY = RULE.y - 0.6 * P;
+  const keys = [[0, { x: slot.x, y: slot.y + H * 0.2, s: 0 }]];
+  keys.push([T.cells[i], { x: slot.x, y: slot.y, s: 1 }]);
+  keys.push([T.cellsOut + i * 0.02, { x: tickX, y: tickY, s: 0.15 }]);
+  keys.push([T.stream[i], { x: tickX, y: tickY, s: 0.6 }]);       // pops back out for the pipe
+  let x = keys[0][1].x, y = keys[0][1].y, s = keys[0][1].s;
+  for (let k = 1; k < keys.length; k++) {
+    const p = spring(tt - keys[k][0], ...(k === 1 ? FEEL.playful : FEEL.snappy));
+    x += (keys[k][1].x - keys[k - 1][1].x) * p;
+    y += (keys[k][1].y - keys[k - 1][1].y) * p;
+    s += (keys[k][1].s - keys[k - 1][1].s) * p;
+  }
+  return { x, y, s, slot };
+}
+function cells(tt) {
+  if (tt < T.cells[0] - 0.5 || tt >= T.pipe + 0.01) {           // SAMPLES window, then PIPE takes over
+    if (tt < T.cells[0] - 0.5 || tt > T.cellsOut + 1.2) return;
+  }
+  for (let i = 0; i < CELLS_N; i++) {
+    const p = cellPos(i, tt);
+    if (p.s <= 0.01) continue;
+    const w = p.slot.w * p.s, h = p.slot.h * p.s;
+    if (w < 2) { g.fillStyle = ACCENT; g.fillRect(p.x - 1, p.y - 1, 2, 2); continue; }
+    g.strokeStyle = DIM; g.lineWidth = Math.max(1, 0.05 * P * p.s);
+    g.strokeRect(p.x - w / 2, p.y - h / 2, w, h);
+    const shut = spring(tt - T.cells[i] - 0.16, 380, 30);         // shutter clamp after landing
+    if (shut > 0 && shut < 1.05) {
+      g.strokeStyle = ACCENT; g.lineWidth = Math.max(1.5, 0.09 * P * p.s);
+      const inset = (1 - clamp(shut)) * 0.5 * w;
+      g.strokeRect(p.x - w / 2 - inset * 0.2, p.y - h / 2 - inset * 0.2, w + inset * 0.4, h + inset * 0.4);
+    }
+    if (p.s > 0.6) miniScene(i, p.x, p.y, w * 0.92, h * 0.92, tt);
+    if (p.s > 0.8) text(`f${String(Math.round(i * TOTAL_F / 12)).padStart(4, '0')}`, Math.round(p.x), Math.round(p.y + h / 2 + 0.55 * P), MONO(0.42 * P, 500), DIM, 'center', 0.9);
+  }
+  // sampling ray: the playhead pulls each frame out of the timeline
+  const rayAge = 0.22;
+  for (let i = 0; i < CELLS_N; i++) {
+    const age = tt - T.cells[i];
+    if (age < 0 || age > rayAge) continue;
+    const cell = SLOTS[i];
+    const alpha = (1 - age / rayAge) * 0.75;
+    g.strokeStyle = `rgba(168,255,62,${alpha})`; g.lineWidth = Math.max(1, 0.05 * P);
+    g.beginPath(); g.moveTo(playheadX(tt), RULE.y - 1.4 * P); g.lineTo(cell.x, cell.y + cell.h / 2 + 0.2 * P); g.stroke();
+  }
+}
+
+// ---------- SPRING: three launches — linear dies, ease lands, spring lives ----------
+const LAUNCH = [
+  { name: 'LINEAR', col: DIM, f: (u) => clamp(u), len: 1.0 },
+  { name: 'EASE', col: DIM, f: (u) => 1 - Math.pow(1 - clamp(u), 3), len: 1.2 },
+  { name: 'SPRING', col: ACCENT, f: (u) => spring(u, 120, 11.6), len: 1.8 }, // ζ≈0.53 → ~14% overshoot
+];
+function launchX(i, tt) {                            // position along its lane, 0..1 of the run
+  const L = T.launches[i], u = (tt - L) / LAUNCH[i].len;
+  return LAUNCH[i].f(u);
+}
+function actSpring(tt) {
+  if (tt < T.spring || tt > T.pipe + 0.5) return;
+  const a = spring(tt - T.spring, ...FEEL.base);
+  const lanes = VERT
+    ? LAUNCH.map((_, i) => ({ axis: 'y', o: M + H * 0.115, d: STAGE_H * 0.58, laneX: W * (0.24 + i * 0.26) }))
+    : LAUNCH.map((_, i) => ({ axis: 'x', o: M + W * 0.1, d: (W - 2 * M) * 0.68, laneY: STAGE_H * (0.22 + i * 0.19) }));
+  g.save(); g.globalAlpha = a;
+  lanes.forEach((L, i) => {
+    const start = T.launches[i] - 0.8;
+    if (tt < start) return;
+    const appear = spring(tt - start, ...FEEL.base);
+    // target hairline + origin tick
+    g.strokeStyle = DIM; g.lineWidth = Math.max(1.5, 0.05 * P);
+    g.setLineDash([0.16 * P, 0.16 * P]);
+    if (L.axis === 'x') {
+      g.beginPath(); g.moveTo(L.o + L.d, L.laneY - 0.9 * P); g.lineTo(L.o + L.d, L.laneY + 0.9 * P); g.stroke();
+      g.setLineDash([]); g.globalAlpha = a * 0.85 * appear;
+      g.beginPath(); g.moveTo(L.o, L.laneY); g.lineTo(L.o + L.d, L.laneY); g.stroke(); g.globalAlpha = a;
+      g.fillStyle = DIM; g.fillRect(L.o - 0.25 * P, L.laneY - 0.25 * P, 0.5 * P, 0.5 * P);
+      text('T', L.o + L.d + 0.5 * P, L.laneY + 0.2 * P, MONO(0.7 * P, 700), DIM);
+    } else {
+      g.beginPath(); g.moveTo(L.laneX - 0.9 * P, L.o + L.d); g.lineTo(L.laneX + 0.9 * P, L.o + L.d); g.stroke();
+      g.setLineDash([]); g.globalAlpha = a * 0.85 * appear;
+      g.beginPath(); g.moveTo(L.laneX, L.o); g.lineTo(L.laneX, L.o + L.d); g.stroke(); g.globalAlpha = a;
+      g.fillStyle = DIM; g.fillRect(L.laneX - 0.25 * P, L.o - 0.25 * P, 0.5 * P, 0.5 * P);
+      text('T', L.laneX + 0.5 * P, L.o + L.d + 0.2 * P, MONO(0.7 * P, 700), DIM);
+    }
+    // ghost beads: 14 samples of the recent past — spacing IS the velocity curve
+    const u = launchX(i, tt);
+    for (let k = 14; k >= 0; k--) {
+      const up = launchX(i, tt - k * 0.028);
+      const bp = clamp(up, -0.2, 1.25);
+      const bx = L.axis === 'x' ? L.o + L.d * bp : L.laneX;
+      const by = L.axis === 'x' ? L.laneY : L.o + L.d * bp;
+      const r = (0.3 * P) * (1 - k / 16) + (k === 0 ? 0.18 * P : 0);
+      g.fillStyle = k === 0 ? LAUNCH[i].col : DIM;
+      g.globalAlpha = a * appear * (k === 0 ? 1 : 0.8 - k * 0.05);
+      g.beginPath(); g.arc(bx, by, Math.max(2, r), 0, 7); g.fill();
+    }
+    g.globalAlpha = a;
+    // energy ring while |velocity| is high
+    const v = Math.abs(launchX(i, tt) - launchX(i, tt - 0.016)) / 0.016;
+    if (u > 0 && u < 1.4 && v > 0.6) {
+      const px = L.axis === 'x' ? L.o + L.d * clamp(u, -0.2, 1.25) : L.laneX;
+      const py = L.axis === 'x' ? L.laneY : L.o + L.d * clamp(u, -0.2, 1.25);
+      g.strokeStyle = LAUNCH[i].col; g.globalAlpha = a * clamp(v * 0.2) * 0.5;
+      g.beginPath(); g.arc(px, py, 0.5 * P + v * 0.15 * P, 0, 7); g.stroke(); g.globalAlpha = a;
+    }
+    // the overshoot reads as a number: live position vs target 1.00
+    if (i === 2 && u > 0.05 && u < 1.45) {
+      const ov = u > 1 ? ACCENT : DIM;
+      text(`x=${clamp(u, -0.5, 1.5).toFixed(2)}`, L.axis === 'x' ? L.o + L.d + 1.1 * P : L.laneX + 0.8 * P,
+        L.axis === 'x' ? L.laneY + 0.28 * P : L.o + L.d + 1.1 * P, MONO(0.62 * P, 500), ov, L.axis === 'x' ? 'left' : 'center');
+    }
+    // label
+    const la = spring(tt - T.launchLabels[i], ...FEEL.snappy);
+    if (la > 0) {
+      const lx = L.axis === 'x' ? M + W * 0.02 : L.laneX, ly = L.axis === 'x' ? L.laneY - 1.3 * P : L.o - 1.0 * P;
+      text(LAUNCH[i].name, lx, ly, DISP(2.3 * P), i === 2 ? ACCENT : DIM, L.axis === 'x' ? 'left' : 'center', la);
+    }
+  });
+  // settle ring on the downbeat
+  const ring = spring(tt - T.gridPulse, ...FEEL.snappy);
+  if (ring > 0 && ring < 1) {
+    const L = lanes[2];
+    const cx = L.axis === 'x' ? L.o + L.d : L.laneX, cy = L.axis === 'x' ? L.laneY : L.o + L.d;
+    g.strokeStyle = ACCENT; g.globalAlpha = a * (1 - ring) * 0.8;
+    g.beginPath(); g.arc(cx, cy, ring * 2.4 * P, 0, 7); g.stroke();
+  }
+  g.restore();
+}
+
+// ---------- PIPE: frames stream through image2pipe into final.mp4 ----------
+function pipeGeom() {
+  if (VERT) return { ax: 'y', o: M + H * 0.05, d: STAGE_H * 0.68, x: W / 2, mp4y: M + H * 0.05 + STAGE_H * 0.68 + 2.2 * P };
+  return { ax: 'x', o: M + W * 0.12, d: (W - 2 * M) * 0.62, x: M + W * 0.12 + (W - 2 * M) * 0.62 + 2.4 * P, y: STAGE_H * 0.46 };
+}
+const PG = pipeGeom();
+const mp4Cells = () => {                             // where frame i lands inside the mp4 card
+  const cw = 1.15 * P, chh = 0.78 * P, gap = 0.2 * P;
+  const gw = 4 * cw + 3 * gap, gh = 3 * chh + 2 * gap;
+  const cx = VERT ? W / 2 : PG.x + 2.2 * P + gw / 2;
+  const cy = VERT ? PG.mp4y + gh / 2 + 1.6 * P : PG.y;
+  return { cx, cy, list: Array.from({ length: 12 }, (_, i) => ({ x: cx - gw / 2 + cw / 2 + (i % 4) * (cw + gap), y: cy - gh / 2 + chh / 2 + Math.floor(i / 4) * (chh + gap), w: cw, h: chh })) };
+};
+const MP4 = mp4Cells();
+function actPipe(tt) {
+  if (tt < T.pipe || tt > T.format + 0.5) return;
+  const a = spring(tt - T.pipe, ...FEEL.base);
+  g.save(); g.globalAlpha = a;
+  g.strokeStyle = DIM; g.lineWidth = Math.max(1.5, 0.05 * P);
+  const rail = (off) => {
+    g.beginPath();
+    if (PG.ax === 'x') { g.moveTo(PG.o, PG.y + off); g.lineTo(PG.o + PG.d, PG.y + off); }
+    else { g.moveTo(PG.x + off, PG.o); g.lineTo(PG.x + off, PG.o + PG.d); }
+    g.stroke();
+  };
+  rail(-0.95 * P); rail(0.95 * P);
+  // chevrons flowing through the channel on 8th notes
+  const nCh = 10;
+  for (let k = 0; k < nCh; k++) {
+    const u = (tt * 1.4 + k / nCh) % 1;
+    const cx = PG.ax === 'x' ? PG.o + u * PG.d : PG.x;
+    const cy = PG.ax === 'x' ? PG.y : PG.o + u * PG.d;
+    g.strokeStyle = `rgba(91,107,84,${0.5 * a})`; g.lineWidth = Math.max(1, 0.06 * P);
+    g.beginPath();
+    if (PG.ax === 'x') { g.moveTo(cx - 0.2 * P, cy - 0.4 * P); g.lineTo(cx + 0.25 * P, cy); g.lineTo(cx - 0.2 * P, cy + 0.4 * P); }
+    else { g.moveTo(cx - 0.4 * P, cy - 0.2 * P); g.lineTo(cx, cy + 0.25 * P); g.lineTo(cx + 0.4 * P, cy - 0.2 * P); }
+    g.stroke();
+  }
+  text('seek(t)', PG.ax === 'x' ? PG.o : PG.x - 2.6 * P, PG.ax === 'x' ? PG.y - 1.4 * P : PG.o - 0.9 * P, MONO(0.95 * P, 700), INK, PG.ax === 'x' ? 'left' : 'center');
+  const la = spring(tt - T.pipeLabel, ...FEEL.snappy);
+  if (la > 0) text('ffmpeg -f image2pipe', PG.ax === 'x' ? PG.o + PG.d * 0.5 : PG.x + 2.6 * P, PG.ax === 'x' ? PG.y + 1.9 * P : PG.o + PG.d * 0.55, MONO(0.7 * P), DIM, 'center', la);
+  // streaming frames: ruler tick → pipe mouth → pipe end → mp4 cell (piecewise path, all springs)
+  for (let i = 0; i < CELLS_N; i++) {
+    const tickX = lerp(RULE.x0, RULE.x1, (i * 5 + 2) / 64), tickY = RULE.y - 0.6 * P;
+    const cell = MP4.list[i];
+    const out = spring(tt - T.stream[i], ...FEEL.snappy);          // leave the tick
+    const u = spring(tt - T.stream[i] - 0.3, 300, 26);             // mouth → pipe end
+    const inn = spring(tt - T.stream[i] - 0.8, 320, 28);           // dock into the card
+    let x, y, s = 0.75 * out * (1 - 0.55 * inn) + 0.05;
+    if (PG.ax === 'x') {
+      x = lerp(lerp(lerp(tickX, PG.o, out), PG.o + PG.d, u), cell.x, inn);
+      y = lerp(lerp(lerp(tickY, PG.y, out), PG.y, u), cell.y, inn);
+    } else {
+      x = lerp(lerp(lerp(tickX, PG.x, out), PG.x, u), cell.x, inn);
+      y = lerp(lerp(lerp(tickY, PG.o, out), PG.o + PG.d, u), cell.y, inn);
+    }
+    if (s > 0.03) {
+      const w2 = 1.15 * P * s * 2, h2 = 0.78 * P * s * 2;
+      g.fillStyle = inn > 0.5 ? BG : '#18201410';
+      g.strokeStyle = inn > 0.5 ? DIM : ACCENT; g.lineWidth = Math.max(1, 0.04 * P);
+      g.strokeRect(x - w2 / 2, y - h2 / 2, w2, h2);
+      if (inn <= 0.5 && s > 0.3) miniScene(i, x, y, w2 * 0.9, h2 * 0.9, tt);
+    }
+  }
+  // racing frame counter while streaming
+  const streaming = tt > T.stream[0] && tt < T.mp4Drop;
+  if (streaming) {
+    const n = Math.min(TOTAL_F, Math.round((tt - T.stream[0]) * (TOTAL_F / 3)));
+    text(`frame ${String(n).padStart(4, '0')}/${TOTAL_F}`, PG.ax === 'x' ? PG.o + PG.d * 0.5 : PG.x, PG.ax === 'x' ? PG.y - 2.0 * P : PG.o + PG.d + 4.6 * P, MONO(1.0 * P, 700), INK, 'center');
+  }
+  // mp4 card lands
+  const drop = spring(tt - T.mp4Drop, ...FEEL.heavy);
+  if (drop > 0) {
+    const gw = 4 * 1.15 * P + 3 * 0.2 * P + 1.3 * P, gh = 3 * 0.78 * P + 2 * 0.2 * P + 2.3 * P;
+    const cx = MP4.cx, cy = MP4.cy + 0.9 * P;
+    g.save(); g.translate(cx, cy); g.scale(drop, drop); g.translate(-cx, -cy);
+    g.strokeStyle = INK; g.lineWidth = Math.max(2, 0.07 * P);
+    g.strokeRect(cx - gw / 2, cy - gh / 2, gw, gh);
+    text('final.mp4', cx, cy + gh / 2 - 0.6 * P, MONO(0.75 * P, 700), INK, 'center');
+    text(`30.000s · ${TOTAL_F}f · ${FPS}fps`, cx, cy - gh / 2 - 0.6 * P, MONO(0.55 * P), DIM, 'center');
+    g.restore();
+    const ring = spring(tt - T.mp4Drop - 0.12, ...FEEL.snappy);
+    if (ring < 1 && ring > 0) { g.strokeStyle = ACCENT; g.globalAlpha = a * (1 - ring) * 0.7; g.beginPath(); g.arc(cx, cy, ring * 3 * P, 0, 7); g.stroke(); }
+  }
+  g.restore();
+}
+
+// ---------- FORMAT: one card morphs 16:9 → 1:1 → 9:16, then fans out ----------
+const ASPECTS = [[1.9, 0.62], [1.05, 1.05], [0.62, 1.5]];   // w,h multipliers of P*8
+function cardWH(k) { const [aw, ah] = ASPECTS[k]; const u = Math.min(9.5 * P, W * 0.3 / aw, STAGE_H * 0.68 / ah); return [aw * u, ah * u]; }
+function actFormat(tt) {
+  if (tt < T.format || tt > T.lockup + 0.5) return;
+  const a = spring(tt - T.format, ...FEEL.base);
+  // fan layout: three fixed spots the morphing card splits into
+  const spots = VERT
+    ? [{ x: W / 2, y: STAGE_H * 0.2 }, { x: W / 2, y: STAGE_H * 0.47 }, { x: W / 2, y: STAGE_H * 0.74 }]
+    : [{ x: W * 0.26, y: STAGE_H * 0.48 }, { x: W * 0.5, y: STAGE_H * 0.48 }, { x: W * 0.74, y: STAGE_H * 0.48 }];
+  g.save(); g.globalAlpha = a;
+  for (let k = 0; k < 3; k++) {
+    const exist = k === 0 ? 1 : spring(tt - (k === 1 ? T.fan - 0.35 : T.fan - 0.18), ...FEEL.snappy);
+    if (exist <= 0) continue;
+    const fan = spring(tt - T.fan - k * 0.06, ...FEEL.base);
+    // before fan: card 0 morphs between aspects; others don't exist yet
+    const mk = T.morphs.filter((m) => tt >= m).length; // 0,1,2,3 morphs passed
+    const k0 = Math.min(2, Math.max(0, mk - 1));
+    const asp = k === 0 && fan < 1 ? k0 : k;
+    let [cw, chh] = cardWH(asp);
+    if (k === 0 && fan < 0.5) {
+      // morph continuously: w,h are tracks across morph times
+      const wKeys = [[0, cardWH(0)[0]], ...T.morphs.map((m, i) => [m, cardWH(Math.min(i + 1, 2))[0]])];
+      const hKeys = [[0, cardWH(0)[1]], ...T.morphs.map((m, i) => [m, cardWH(Math.min(i + 1, 2))[1]])];
+      cw = track(tt, wKeys, FEEL.base); chh = track(tt, hKeys, FEEL.base);
+    }
+    const home = { x: W / 2, y: STAGE_H * 0.46 };
+    const x = lerp(home.x, spots[k].x, k === 0 ? fan : 1), y = lerp(home.y, spots[k].y, k === 0 ? fan : 1);
+    const s = exist * (k === 0 ? 1 : fan);
+    if (s <= 0.01) continue;
+    const w2 = cw * s * (k === 0 || fan > 0.5 ? 1 : 0.8), h2 = chh * s;
+    g.strokeStyle = k === 0 ? ACCENT : INK; g.lineWidth = Math.max(1.5, 0.05 * P);
+    g.strokeRect(x - w2 / 2, y - h2 / 2, w2, h2);
+    // inside the card: a mini ruler + live playhead
+    const ry = y + h2 / 2 - 0.5 * P * s, rx0 = x - w2 / 2 + 0.4 * P * s, rx1 = x + w2 / 2 - 0.4 * P * s;
+    g.strokeStyle = DIM; g.lineWidth = Math.max(1, 0.03 * P);
+    g.beginPath(); g.moveTo(rx0, ry); g.lineTo(rx1, ry); g.stroke();
+    for (let i = 0; i <= 8; i++) { const tx = lerp(rx0, rx1, i / 8); g.beginPath(); g.moveTo(tx, ry); g.lineTo(tx, ry - 0.22 * P * s); g.stroke(); }
+    const px = lerp(rx0, rx1, playheadP(tt));
+    g.strokeStyle = ACCENT; g.beginPath(); g.moveTo(px, ry + 0.15 * P * s); g.lineTo(px, ry - 0.5 * P * s); g.stroke();
+    if (w2 > 2.2 * P) text(['16:9', '1:1', '9:16'][asp], x, y - h2 / 2 + 0.9 * P * s, MONO(0.6 * P * s, 700), k === 0 ? ACCENT : INK, 'center');
+    if (fan > 0.7) text(['16:9', '1:1', '9:16'][k], x, y + h2 / 2 + 0.9 * P * s, MONO(0.55 * P, 500), DIM, 'center');
+  }
+  const ol = spring(tt - T.oneTimeline, ...FEEL.heavy);
+  if (ol > 0) text('ONE TIMELINE', W / 2, VERT ? STAGE_H * 0.92 : STAGE_H * 0.88, DISP(2.6 * P), INK, 'center', ol);
+  g.restore();
+}
+
+// ---------- LOCKUP: everything collapses to ticks; ticks grow into SEEK ----------
+function actLockup(tt) {
+  if (tt < T.lockup || tt > T.hold + 0.3) return;
+  const inS = spring(tt - T.lockup, ...FEEL.base);
+  const word = 'SEEK';
+  const px = Math.min(VERT ? 4.4 * P : 5.6 * P, (W - 3 * M) / (word.length * 0.62));
+  g.font = DISP(px); g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  const total = g.measureText(word).width;
+  const cx = W / 2, baseY = STAGE_H * 0.52;
+  // bars under the wordmark: 16 bar ticks as an equalizer on the beat
+  const eqN = 16, eqW = Math.min(total, W - 4 * M);
+  for (let i = 0; i < eqN; i++) {
+    const beatAge = tt - (T.lockup + i * E8 * 0.5);
+    const amp = 0.5 + 0.5 * Math.abs(Math.sin(i * 2.3 + tt * BPM / 60 * Math.PI));
+    const bh = (0.3 + 0.7 * amp * clamp(beatAge * 2)) * P * 0.9;
+    g.fillStyle = i === Math.floor(((tt % DUR) / BEAT)) % 4 ? ACCENT : DIM;
+    g.globalAlpha = inS * 0.8;
+    g.fillRect(cx - eqW / 2 + (eqW / (eqN - 1)) * i - 0.07 * P, baseY + 1.7 * P - bh, 0.14 * P, bh);
+  }
+  g.globalAlpha = 1;
+  // letters rise out of the ruler line
+  for (let i = 0; i < word.length; i++) {
+    const s = spring(tt - T.letters[i], ...FEEL.heavy);
+    if (s <= 0) continue;
+    g.save();
+    g.beginPath(); g.rect(0, 0, W, baseY + 0.3 * P); g.clip();
+    g.translate(0, (1 - s) * px * 0.9);
+    g.fillStyle = i === 3 ? ACCENT : INK;
+    g.fillText(word[i], cx - total / 2 + g.measureText(word.slice(0, i)).width + g.measureText(word[i]).width / 2, baseY);
+    g.restore();
+    // stem connecting each letter to the ruler
+    const lx = cx - total / 2 + g.measureText(word.slice(0, i)).width + g.measureText(word[i]).width / 2;
+    g.strokeStyle = i === 3 ? ACCENT : DIM; g.lineWidth = Math.max(1, 0.05 * P); g.globalAlpha = s * 0.5;
+    g.beginPath(); g.moveTo(lx, baseY + 2.0 * P); g.lineTo(lx, RULE.y - 1.5 * P); g.stroke(); g.globalAlpha = 1;
+  }
+  // tagline types itself
+  const tg = 'every frame a function of time';
+  const n = Math.floor(clamp((tt - T.tagline[0]) / (T.tagline[1] - T.tagline[0])) * tg.length);
+  if (n > 0) text(tg.slice(0, n) + (n < tg.length ? '▌' : ''), cx, baseY + 1.15 * P * (VERT ? 1.6 : 1), MONO(0.72 * P), DIM, 'center');
+  // accent underbar
+  const ub = spring(tt - T.underbar, ...FEEL.snappy);
+  if (ub > 0) { g.fillStyle = ACCENT; g.fillRect(cx - (total / 2) * ub, baseY + 1.45 * P, total * ub, 0.16 * P); }
+  // shutter flash on the downbeat — the wordmark 'locks'
+  const flash = tt - T.underbar;
+  if (flash > 0 && flash < 0.22) { g.fillStyle = `rgba(168,255,62,${0.1 * (1 - flash / 0.22)})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---------- REWIND overlay: the film drags itself back to frame 0 ----------
+function rewindOverlay(t) {
+  if (t < T.hold || t > T.black + 0.2) return;
+  // time-reversal flash: one inverted frame marks the cut
+  if (t - T.hold < 0.09) {
+    g.save(); g.globalCompositeOperation = 'difference';
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); g.restore();
+    return;
+  }
+  const age = t - T.hold;
+  const fade = clamp((T.black - t) / 0.35);            // overlay dies before the last frame
+  const tt = tau(t);
+  const x = playheadX(tt);
+  // blit world with jitter bands — deterministic slices, seeded per frame step
+  const step = Math.floor(t * 22);
+  const jr = rng(step * 977 + 13);
+  const nBand = 4 + (step % 5);
+  for (let i = 0; i < nBand; i++) {
+    const y0 = jr() * H, hh = (0.02 + jr() * 0.06) * H;
+    const dx = (jr() - 0.5) * 0.14 * W * clamp(age * 4);
+    g.drawImage(wc, 0, y0, W, hh, dx, y0, W, hh);
+  }
+  // scanline column at the (reversed) playhead
+  g.fillStyle = `rgba(168,255,62,${0.5 * fade})`;
+  g.fillRect(x - 0.12 * P, 0, 0.24 * P, RULE.y);
+  g.fillStyle = `rgba(168,255,62,${0.9 * fade})`;
+  g.fillRect(x - 0.02 * P, 0, 0.05 * P, RULE.y + 1.1 * P);
+  text('◀◀ REWIND', Math.min(x + 0.7 * P, W - 4.4 * P), M, MONO(0.6 * P, 700), ACCENT, 'left', fade);
+}
+
+// ---------- compose ----------
+function world(tt) {
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  // phosphor scanline texture — part of the world's fabric, not a vignette
+  g.fillStyle = 'rgba(168,255,62,0.022)';
+  for (let y = 0; y < H; y += Math.max(3, Math.round(0.11 * P))) g.fillRect(0, y, W, 1);
+  ruler(tt);
+  actTick(tt);
+  cells(tt);
+  actSpring(tt);
+  actPipe(tt);
+  actFormat(tt);
+  actLockup(tt);
+  statusLine(tt);
+  actTitle(tt);
+  playhead(tt);
+}
+function draw(t) {
+  const tt = tau(t);
+  g = wg; world(tt);                        // world paints into the buffer
+  g = screenG;                              // overlays and blit go to the screen
+  g.drawImage(wc, 0, 0);
+  rewindOverlay(t);
+}
+window.seek = (t) => { draw(t); return true; };
+
+// live preview
+if (!navigator.webdriver) {
+  const t0 = performance.now();
+  (function loop() { window.seek(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); })();
+}
+document.fonts.ready.then(() => { window.READY = true; });
+</script>
