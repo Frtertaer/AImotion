@@ -1,0 +1,15 @@
+[
+  { "t": 0.00, "type": "whoosh" },
+  { "t": 0.05, "type": "pop" }, { "t": 0.10, "type": "tick" }, { "t": 0.15, "type": "tick" },
+  { "t": 0.20, "type": "pop" }, { "t": 0.25, "type": "tick" }, { "t": 0.30, "type": "tick" },
+  { "t": 0.35, "type": "tick" }, { "t": 0.40, "type": "pop" },
+  { "t": 0.50, "type": "click" },
+  { "t": 2.00, "type": "thump" },
+  { "t": 2.20, "type": "tick", "gain": 0.6 }, { "t": 2.40, "type": "tick", "gain": 0.6 },
+  { "t": 2.60, "type": "tick", "gain": 0.6 }, { "t": 2.80, "type": "tick", "gain": 0.6 },
+  { "t": 3.00, "type": "riser", "gain": 0.8 },
+  { "t": 4.00, "type": "thump" },
+  { "t": 4.05, "type": "click" },
+  { "t": 4.70, "type": "whoosh" },
+  { "t": 5.60, "type": "pop" }
+]

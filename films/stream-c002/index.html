@@ -1,0 +1,289 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>c002 overlay</title>
+<style>html,body{margin:0;background:#444}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+<canvas id="c"></canvas>
+<script type="module">
+// Transparent motion-graphics layer for the split-facecam clip. Rendered with --alpha and
+// composited onto the source by ffmpeg. Cards live in the free zone of the bottom panel:
+// above the burned-in subtitles (cap top ~1545) and left of the chat (x > 870).
+import { clamp, lerp, spring, track } from '../../lib/motion.js';
+import { T, DUR, FALL } from './timeline.js';
+
+const W = 1080, H = 1920;
+window.FILM = { w: W, h: H, dur: DUR };
+const cv = document.getElementById('c');
+cv.width = W; cv.height = H;
+const g = cv.getContext('2d');
+
+const YEL = '#FFD23F', GRN = '#3DDC84', RED = '#FF4545', INK = '#FFFFFF', DIM = '#8A8A8A', CARD_BG = 'rgba(16,16,16,0.94)';
+const HEAD = (px) => `900 ${px}px "Arial Black", "Segoe UI Black", Arial, sans-serif`;
+const LABEL = (px, w = 700) => `${w} ${px}px "Segoe UI", Arial, sans-serif`;
+const CARD = { x: 44, y: 1176, w: 792, h: 350, r: 30 };
+
+// ---------- helpers ----------
+// maxW: squeeze horizontally so a label can never run past the card edge into the chat.
+const text = (s, x, y, font, fill, align = 'left', maxW) => {
+  g.font = font; g.fillStyle = fill; g.textAlign = align; g.textBaseline = 'alphabetic';
+  if (maxW) g.fillText(s, x, y, maxW); else g.fillText(s, x, y);
+};
+const kick = (dt, a = 0.25) => (dt < 0 ? 0 : a * Math.exp(-dt * 8) * Math.sin(dt * 20)); // scale impulse
+const appear = (t, t0, feel = [260, 20]) => spring(t - t0, ...feel);
+function withScale(cx, cy, s, fn) { g.save(); g.translate(cx, cy); g.scale(s, s); g.translate(-cx, -cy); fn(); g.restore(); }
+
+// Card shell: springs in (scale + rise), springs out (slide left + shrink). Content in card-local coords.
+function card(t, tin, tout, content) {
+  if (t < tin || t > tout + 0.6) return;
+  const a = appear(t, tin), o = spring(t - tout, 320, 30);
+  const alpha = clamp(a * 4) * (1 - clamp(o * 1.4));
+  if (alpha <= 0.001) return;
+  const s = (0.9 + 0.1 * a) * (1 - 0.12 * o);
+  g.save();
+  g.globalAlpha = alpha;
+  g.translate(CARD.x + CARD.w / 2 - o * 160, CARD.y + CARD.h / 2 + (1 - a) * 70);
+  g.scale(s, s);
+  g.translate(-CARD.w / 2, -CARD.h / 2);
+  g.fillStyle = CARD_BG;
+  g.beginPath(); g.roundRect(0, 0, CARD.w, CARD.h, CARD.r); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 3; g.stroke();
+  g.clip();                                  // nothing a card draws can escape it (chat, subtitles)
+  content(t);
+  g.restore();
+}
+
+// ---------- hook title on the webcam panel ----------
+// Big question for the hook, docks smaller at the top edge, leaves when card C answers it.
+function title(t) {
+  if (t < T.titleIn || t > T.titleOut + 0.6) return;
+  const a = appear(t, T.titleIn, [240, 15]), d = spring(t - T.titleDock, 200, 24), o = spring(t - T.titleOut, 300, 28);
+  // docked: y ~133-187, below the TikTok/Shorts top menu (~0-120) and above the hairline (~210)
+  const s = (0.6 + 0.4 * a) * (1 - 0.5 * d);
+  g.save();
+  g.globalAlpha = clamp(a * 4);
+  g.translate(W / 2, lerp(170, 160, d) - o * 260);
+  g.scale(s, s);
+  g.font = HEAD(68);
+  const label = 'ПОЧЕМУ НЕ ВАКУУМКИ?';
+  const tw = g.measureText(label).width;
+  g.fillStyle = YEL;
+  g.beginPath(); g.roundRect(-tw / 2 - 34, -62, tw + 68, 108, 26); g.fill();
+  text(label, 0, 22, HEAD(68), '#111', 'center');
+  g.restore();
+}
+
+// ---------- A. sound meter ----------
+function meter(t) {
+  card(t, T.aIn, T.aOut, (t) => {
+    text('ЗВУК', 40, 78, HEAD(52), INK);
+    // one label, lands with the slam on "нормальный звук"
+    const n = appear(t, T.aNorm, [320, 18]);
+    if (n > 0.001) {
+      g.save(); g.globalAlpha *= clamp(n * 3);
+      withScale(CARD.w - 40, 60, 1 + kick(t - T.aNorm, 0.4), () => text('НОРМАЛЬНЫЙ', CARD.w - 40, 78, HEAD(52), YEL, 'right'));
+      g.restore();
+    }
+    const x0 = 60, x1 = CARD.w - 60, y = 196;
+    // needle: rises to TOP on "хорошие наушники", slammed down to NORM on "нормальный звук"
+    const v = track(t, [[0, 0.1], [T.aGood, 0.96], [T.aNorm, 0.5]], [260, 12]);
+    g.fillStyle = '#2E2E2E'; g.beginPath(); g.roundRect(x0, y - 11, x1 - x0, 22, 11); g.fill();
+    g.fillStyle = YEL; g.beginPath(); g.roundRect(x0, y - 11, Math.max(22, (x1 - x0) * clamp(v)), 22, 11); g.fill();
+    const nx = lerp(x0, x1, clamp(v, 0, 1.05));
+    g.fillStyle = INK; g.beginPath(); g.arc(nx, y, 26, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#111'; g.beginPath(); g.arc(nx, y, 9, 0, Math.PI * 2); g.fill();
+    [[0, 'ПЛОХО'], [0.5, 'НОРМ'], [1, 'ТОП']].forEach(([p, s]) => {
+      const lit = Math.abs(v - p) < 0.2;
+      text(s, lerp(x0, x1, p), 290, LABEL(34, 800), lit ? INK : DIM, p === 0 ? 'left' : p === 1 ? 'right' : 'center');
+    });
+    // "не прям заебись": the TOP tick gets struck out
+    const k = clamp((t - T.aStrike - 0.2) / 0.2);
+    if (k > 0) { g.fillStyle = RED; g.fillRect(x1 - 76, 278, 80 * k, 7); }
+  });
+}
+
+// ---------- B. checklist ----------
+function checkBox(x, y, t, tShow, tCheck) {
+  const a = appear(t, tShow, [300, 22]);
+  const c = appear(t, tCheck, [260, 16]);
+  withScale(x + 30, y + 30, a * (1 + kick(t - tCheck, 0.3)), () => {
+    g.lineWidth = 5; g.strokeStyle = c > 0.05 ? GRN : '#6A6A6A';
+    g.fillStyle = c > 0.05 ? GRN : 'transparent';
+    g.beginPath(); g.roundRect(x, y, 60, 60, 14);
+    if (c > 0.05) g.fill(); g.stroke();
+    if (c > 0.02) {
+      g.save(); g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#0E2A18';
+      g.setLineDash([90 * clamp(c), 200]);
+      g.beginPath(); g.moveTo(x + 14, y + 32); g.lineTo(x + 26, y + 45); g.lineTo(x + 47, y + 17); g.stroke();
+      g.restore();
+    }
+  });
+  return c;
+}
+function checklist(t) {
+  card(t, T.bIn, T.bOut, (t) => {
+    text('ПОЧЕМУ НРАВЯТСЯ:', 40, 78, HEAD(44), INK);
+    const items = [['ОТКРЫТЫЙ ТИП', T.bOpen, 0.15], ['УДОБНО ЛЕЖАТ В УХЕ', T.bComfy, 0.28]];
+    items.forEach(([s, tc, d], k) => {
+      const y = 128 + k * 104;
+      const c = checkBox(40, y, t, T.bIn + d, tc);
+      const a = appear(t, T.bIn + d, [300, 22]);
+      g.save(); g.globalAlpha *= clamp(a * 3);
+      text(s, 130 + (1 - a) * 30, y + 46, HEAD(44), c > 0.5 ? INK : '#9A9A9A');
+      g.restore();
+    });
+  });
+}
+
+// ---------- generic earbud drawings (original, no brand marks) ----------
+function inEarBud(cx, cy, s = 1) {           // silicone-tip in-ear bud
+  g.save(); g.translate(cx, cy); g.scale(s, s);
+  g.fillStyle = '#EDEDED'; g.beginPath(); g.ellipse(0, 0, 70, 62, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#CFCFCF'; g.beginPath(); g.ellipse(-14, 8, 40, 34, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#9C9C9C'; g.beginPath(); g.moveTo(52, -34); g.quadraticCurveTo(118, -30, 112, 0); g.quadraticCurveTo(118, 30, 52, 34); g.closePath(); g.fill();
+  g.fillStyle = '#7A7A7A'; g.beginPath(); g.ellipse(112, 0, 8, 22, 0, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+function openBud(cx, cy, rot = 0, s = 1) {  // open-fit bud with a stem
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(s, s);
+  g.fillStyle = '#F4F4F4'; g.strokeStyle = '#9A9A9A'; g.lineWidth = 3;
+  g.beginPath(); g.roundRect(-9, 8, 18, 74, 9); g.fill(); g.stroke();
+  g.beginPath(); g.ellipse(0, 0, 30, 25, -0.3, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.fillStyle = '#555'; g.beginPath(); g.ellipse(6, -4, 9, 7, -0.3, 0, Math.PI * 2); g.fill();
+  g.restore();
+}
+
+// ---------- C. in-ear = no ----------
+function hate(t) {
+  card(t, T.cIn, T.cOut, (t) => {
+    const ia = appear(t, T.cIn + 0.05, [260, 18]);
+    inEarBud(170, 175, 0.9 * ia);
+    const x = appear(t, T.cHate, [340, 18]);
+    if (x > 0.001) {
+      g.save(); g.translate(170, 175); g.rotate(-0.12); const s = 1.9 - 0.9 * x; g.scale(s, s);
+      g.globalAlpha *= clamp(x * 3); g.strokeStyle = RED; g.lineWidth = 26; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-95, -95); g.lineTo(95, 95); g.moveTo(95, -95); g.lineTo(-95, 95); g.stroke();
+      g.restore();
+    }
+    const w = appear(t, T.cWord, [300, 20]);
+    g.save(); g.globalAlpha *= clamp(w * 3);
+    text('ВАКУУМКИ', 330 + (1 - w) * 60, 170, HEAD(66), INK);
+    g.fillStyle = RED; g.fillRect(332, 190, 420 * clamp(w), 10);
+    g.restore();
+    const p = appear(t, T.cPro, [300, 22]);
+    g.save(); g.globalAlpha *= clamp(p * 3);
+    text('поэтому без «прошек»', 332 + (1 - p) * 40, 262, LABEL(36, 700), '#D8D8D8', 'left', CARD.w - 332 - 36);
+    g.restore();
+  });
+}
+
+// ---------- D. the ear ----------
+const EAR = { x: 44, y: 24 };                  // ear drawing box inside the card (240 x 300)
+const earPaths = [
+  new Path2D('M 172 34 C 110 0, 28 32, 24 122 C 20 204, 62 272, 122 286 C 162 295, 178 264, 162 240 C 150 224, 136 222, 132 206'),
+  new Path2D('M 150 64 C 100 58, 70 102, 80 150 C 88 186, 110 200, 134 196'),
+  new Path2D('M 196 140 C 214 152, 214 182, 196 192'),
+];
+const EAR_BUD_IN = { x: 170, y: FALL.from };   // bud resting in the canal (ear-local)
+const CONCHA = { x: 118, y: 140, rx: 44, ry: 54, rot: -0.35 }; // the bowl, up and back from the canal
+const fallY = (dt) => (dt <= 0 ? 0 : Math.min(FALL.exit - FALL.from + 40, 0.5 * FALL.g * dt * dt)); // free fall out of the card
+function ear(t) {
+  card(t, T.dIn, T.dOut, (t) => {
+    g.save(); g.translate(EAR.x, EAR.y);
+    // concha lights up green on "раковина"
+    const ch = appear(t, T.dConcha, [260, 16]);
+    if (ch > 0.001) {
+      g.fillStyle = 'rgba(61,220,132,0.55)'; g.strokeStyle = GRN; g.lineWidth = 5;
+      g.beginPath(); g.ellipse(CONCHA.x, CONCHA.y, CONCHA.rx * ch, CONCHA.ry * ch, CONCHA.rot, 0, Math.PI * 2); g.fill(); g.stroke();
+    }
+    // ear outline draws itself
+    const draw = clamp((t - T.dIn - 0.08) / 0.8);
+    g.strokeStyle = INK; g.lineWidth = 11; g.lineCap = 'round';
+    earPaths.forEach((p, k) => { g.setLineDash([1400 * clamp(draw * 1.4 - k * 0.2), 1400]); g.stroke(p); });
+    g.setLineDash([]);
+    // canal: widens on "широкая"
+    const wide = appear(t, T.dWide, [240, 14]);
+    const handOff = clamp((t - T.dConcha) / 0.25);        // the canal callout yields to the concha
+    g.fillStyle = '#000'; g.strokeStyle = wide > 0.01 && handOff < 1 ? YEL : '#777'; g.lineWidth = 4;
+    g.beginPath(); g.ellipse(172, 158, 12 + 10 * wide, 16 + 6 * wide, 0, 0, Math.PI * 2); g.fill(); g.stroke();
+    if (wide > 0.01 && handOff < 1) {
+      g.save(); g.globalAlpha *= clamp(wide * 2) * (1 - handOff); g.strokeStyle = YEL; g.lineWidth = 5; g.lineCap = 'round';
+      const r = 30 + 14 * wide;
+      g.beginPath(); g.moveTo(172 - r, 112); g.lineTo(172 + r, 112);
+      g.moveTo(172 - r + 10, 104); g.lineTo(172 - r, 112); g.lineTo(172 - r + 10, 120);
+      g.moveTo(172 + r - 10, 104); g.lineTo(172 + r, 112); g.lineTo(172 + r - 10, 120); g.stroke();
+      g.restore();
+    }
+    // the bud: slides into the canal, drops out through the bottom of the card on "вываливается",
+    // comes back up into the concha on "раковина" and stays
+    if (t >= T.dBudIn - 0.3) {
+      let x = track(t, [[0, 330], [T.dBudIn, EAR_BUD_IN.x]], [260, 22]);
+      let y = EAR_BUD_IN.y + fallY(t - T.dFall);
+      let rot = t < T.dFall ? 0 : Math.min(2.2, (t - T.dFall) * 6);
+      const back = appear(t, T.dBudBack, [240, 20]);
+      if (t >= T.dBudBack) { x = lerp(CONCHA.x + 20, CONCHA.x + 14, back); y = lerp(FALL.exit, CONCHA.y - 6, back); rot = lerp(0.6, -0.2, back); }
+      openBud(x, y, rot, 0.95);
+    }
+    g.restore();
+    // right column: header + stacked findings
+    const hd = appear(t, T.dHead, [300, 20]);
+    g.save(); g.globalAlpha *= clamp(hd * 3); text('МОЁ УХО', 330 + (1 - hd) * 40, 84, HEAD(52), INK); g.restore();
+    const rows = [
+      [T.dFall + 0.05, 'ВСЁ ВЫВАЛИВАЕТСЯ', RED],
+      [T.dWide, 'ДЫРКА — ШИРОКАЯ', YEL],
+      [T.dConcha, '✓ РАКОВИНА ДЕРЖИТ', GRN],
+    ];
+    rows.forEach(([t0, s, col], k) => {
+      const a = appear(t, t0, [300, 22]);
+      if (a < 0.001) return;
+      g.save(); g.globalAlpha *= clamp(a * 3);           // rise into place, no horizontal travel
+      text(s, 330, 172 + k * 72 + (1 - a) * 24, HEAD(34), col, 'left', CARD.w - 330 - 36);
+      g.restore();
+    });
+  });
+}
+
+// ---------- E. ear tips ----------
+function tips(t) {
+  card(t, T.eIn, DUR + 1, (t) => {
+    text('ПЕРЕПРОБОВАЛ', 40, 74, HEAD(46), INK);
+    text('АМБУШЮРЫ', 40, 128, HEAD(46), YEL);
+    const sizes = [['S', 58], ['M', 76], ['L', 94]];
+    let latest = -1; T.eTips.forEach((k, i) => { if (t >= k) latest = i; });
+    sizes.forEach(([L, r], i) => {
+      const a = appear(t, T.eTips[i], [260, 14]);
+      if (a < 0.001) return;
+      const cx = [300, 480, 675][i], cy = 238;
+      withScale(cx, cy, a, () => {
+        // silicone tip, side view: a bell flaring out from a narrow nozzle, with its bore on top
+        const on = i === latest;
+        g.fillStyle = on ? YEL : '#5A5A5A';
+        g.beginPath();
+        g.moveTo(cx - r * 0.3, cy - r * 0.75);
+        g.quadraticCurveTo(cx - r * 1.05, cy - r * 0.35, cx - r, cy + r * 0.45);
+        g.quadraticCurveTo(cx, cy + r * 0.7, cx + r, cy + r * 0.45);
+        g.quadraticCurveTo(cx + r * 1.05, cy - r * 0.35, cx + r * 0.3, cy - r * 0.75);
+        g.closePath(); g.fill();
+        g.fillStyle = on ? '#8A6A00' : '#2A2A2A';
+        g.beginPath(); g.ellipse(cx, cy - r * 0.72, r * 0.34, r * 0.16, 0, 0, Math.PI * 2); g.fill();
+        text(L, cx, cy + r * 0.45 + 44, HEAD(36), on ? INK : DIM, 'center');
+      });
+    });
+  });
+}
+
+function draw(t) {
+  g.clearRect(0, 0, W, H);
+  title(t);
+  meter(t);
+  checklist(t);
+  hate(t);
+  ear(t);
+  tips(t);
+}
+window.seek = (t) => { draw(t); return true; };
+
+if (!navigator.webdriver) {
+  const t0 = performance.now();
+  (function loop() { draw(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); })();
+}
+document.fonts.ready.then(() => { window.READY = true; });
+</script>

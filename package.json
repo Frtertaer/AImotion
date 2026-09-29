@@ -1,0 +1,20 @@
+{
+  "name": "aimotion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "render": "node render.mjs",
+    "check": "node tools/check-seek.mjs",
+    "review": "node tools/review.mjs",
+    "demo": "node render.mjs films/demo && node audio/sfx.mjs films/demo/cues.json films/demo/out/sfx.wav --dur 6 && node audio/mix.mjs films/demo/out/silent.mp4 films/demo/out/final.mp4 films/demo/out/sfx.wav && node tools/review.mjs films/demo/out/final.mp4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

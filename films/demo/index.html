@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>demo</title>
+<style>html,body{margin:0;background:#141413}canvas{display:block;max-height:100vh;margin:auto}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { clamp, lerp, spring, track, swapAlpha, rng, FEEL } from '../../lib/motion.js';
+
+// Render contract: window.FILM describes the canvas, window.seek(t) paints frame t.
+const FILM = { w: 1080, h: 1920, dur: 6 };
+window.FILM = FILM;
+const cv = document.getElementById('c');
+cv.width = FILM.w; cv.height = FILM.h;
+const g = cv.getContext('2d');
+const { w: W, h: H } = FILM;
+
+const INK = '#F0EEE6', BG = '#141413', ACCENT = '#D97757';
+const DISPLAY = '700 170px Georgia, "Times New Roman", serif';
+const UI = '600 44px "Segoe UI", Arial, sans-serif';
+
+const SCENES = [
+  { from: 0, to: 2, draw(t) {                     // kinetic word, letters on a stagger
+    const word = 'AIMOTION';
+    g.font = DISPLAY; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const total = g.measureText(word).width;
+    let x = W / 2 - total / 2;
+    for (let i = 0; i < word.length; i++) {
+      const cw = g.measureText(word[i]).width;
+      const s = spring(t - 0.05 * i, ...FEEL.playful);
+      g.save();
+      g.translate(x + cw / 2, H / 2 + (1 - s) * 140);
+      g.globalAlpha = clamp(s * 1.5) * clamp((2 - t) / 0.15);
+      g.fillStyle = i === 2 ? ACCENT : INK;
+      g.fillText(word[i], 0, 0);
+      g.restore();
+      x += cw;
+    }
+    const u = spring(t - 0.5, ...FEEL.snappy);
+    g.fillStyle = ACCENT;
+    g.fillRect(W / 2 - 330 * u, H / 2 + 120, 660 * u, 14);
+  }},
+  { from: 2, to: 4, draw(t) {                     // grid on a seeded stagger
+    const r = rng(7);
+    for (let i = 0; i < 48; i++) {
+      const cx = (i % 6) * 160 + 140, cy = Math.floor(i / 6) * 160 + 400;
+      const s = spring(t - i * 0.02 - r() * 0.12, 260, 20) * clamp((2 - t) / 0.2);
+      g.fillStyle = i % 7 ? INK : ACCENT;
+      g.beginPath(); g.arc(cx, cy, 58 * s, 0, Math.PI * 2); g.fill();
+    }
+  }},
+  { from: 4, to: 6, draw(t) {                     // one shape morphs: pill -> card -> gone
+    const bw = track(t, [[0, 0], [0.05, 420], [0.7, 820], [1.6, 0]], FEEL.base);
+    const bh = track(t, [[0, 0], [0.05, 130], [0.7, 560], [1.6, 0]], FEEL.base);
+    const rad = track(t, [[0, 65], [0.7, 36], [1.6, 65]], FEEL.base);
+    if (bw < 1 || bh < 1) return;
+    g.fillStyle = INK;
+    g.beginPath(); g.roundRect(W / 2 - bw / 2, H / 2 - bh / 2, bw, bh, Math.min(rad, bh / 2)); g.fill();
+    g.font = UI; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = BG;
+    g.globalAlpha = swapAlpha(t, 0.05, 0.7);
+    g.fillText('Get started', W / 2, H / 2);
+    g.globalAlpha = swapAlpha(t, 0.7, 1.5);
+    g.fillText('seek(t) · springs · beats', W / 2, H / 2 - 60);
+    g.fillStyle = ACCENT;
+    g.fillRect(W / 2 - 300, H / 2 + 40, lerp(0, 600, clamp((t - 0.8) / 0.5)), 12);
+    g.globalAlpha = 1;
+  }},
+];
+
+function draw(t) {
+  g.globalAlpha = 1;
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  for (const s of SCENES) if (t >= s.from && t < s.to) s.draw(t - s.from);
+}
+window.seek = (t) => { draw(t); return true; };
+
+// Live preview in a normal browser; the renderer sets navigator.webdriver.
+if (!navigator.webdriver) {
+  const t0 = performance.now();
+  (function loop() { draw(((performance.now() - t0) / 1000) % FILM.dur); requestAnimationFrame(loop); })();
+}
+window.READY = true;
+</script>

@@ -1,0 +1,319 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>BIT</title>
+<style>html,body{margin:0;background:#151515}canvas{display:block;max-width:100vw;max-height:100vh;margin:auto}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { clamp, lerp, spring, track, rng } from '../../lib/motion.js';
+import { T, DUR } from './timeline.js';
+
+// ---------- format: ?fmt=9x16 | 1x1 | 16x9, everything below is laid out from W, H, P ----------
+const SIZES = { '9x16': [1080, 1920], '1x1': [1080, 1080], '16x9': [1920, 1080] };
+const fmt = new URLSearchParams(location.search).get('fmt') || '9x16';
+const [W, H] = SIZES[fmt] || SIZES['9x16'];
+window.FILM = { w: W, h: H, dur: DUR, fmt };
+const cv = document.getElementById('c');
+cv.width = W; cv.height = H;
+const g = cv.getContext('2d');
+
+const BG = '#151515', LINE = '#3A3936', DIM = '#6E6B63', INK = '#EDEBE4';
+const COL = { O: '#D77656', S: '#B35F42', E: '#151515', M: '#151515', W: '#EDEBE4', A: '#F2C4A8' };
+const ORANGE = COL.O;
+
+const P = Math.round(Math.min(W, H) / 27);
+const M = 1.2 * P;                                   // terminal frame inset
+const BASE = fmt === '9x16' ? 1.25 : 1;              // Bit's size in the tall frame
+const GROUND = H / 2 + 4.5 * P * BASE;
+const MONO = (px, w = 600) => `${w} ${px}px Consolas, "Cascadia Mono", "Courier New", monospace`;
+
+// ---------- Bit: an original 11x9 pixel sprite ----------
+const SPRITE = [
+  '.....A.....',
+  '.....O.....',
+  '...OOOOO...',
+  '..OOOOOOO..',
+  '.OOWEOWEOO.',
+  '.OOEEOEEOO.',
+  '.OOOOMOOOO.',
+  '.SSSSSSSSS.',
+  '..SS...SS..',
+];
+const CELLS = [];
+SPRITE.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== '.') CELLS.push({ r, c, ch }); }));
+const N = CELLS.length;                              // 54
+
+// ---------- the word BIT in a 3x5 pixel font ----------
+const FONT = {
+  B: ['XX.', 'X.X', 'XX.', 'X.X', 'XX.'],
+  I: ['XXX', '.X.', '.X.', '.X.', 'XXX'],
+  T: ['XXX', '.X.', '.X.', '.X.', '.X.'],
+};
+const TEXT = [];
+['B', 'I', 'T'].forEach((L, li) => FONT[L].forEach((row, r) => [...row].forEach((ch, c) => { if (ch === 'X') TEXT.push({ r, c: li * 4 + c }); })));
+const C = Math.min(2 * P, (W - 2 * M - 4 * P) / 11);
+
+// ---------- layout ----------
+g.font = MONO(1.5 * P);
+const PROMPT_X = M + 1.4 * P;
+const CHAR_W = g.measureText('b').width;
+const CUR = { x: PROMPT_X + g.measureText('> ').width, w: 0.8 * P, h: 1.5 * P };
+CUR.y = GROUND - CUR.h;
+const TYPED = 'bit';
+const typedCount = (t) => T.typed.filter((k) => t >= k).length;
+const CS = 0.36;                                     // clone scale
+const CLONE_GROUND = H / 2 + 4.5 * P * CS;
+const GIANT = Math.min(2.2, (H - 2 * M - 2 * P) / (9 * P), (W - 2 * M - 2 * P) / (11 * P));
+const GIANT_GROUND = H / 2 + 4.5 * P * GIANT;
+const HALF = 5.5 * P * BASE;                         // Bit's half width
+const RUN_X = Math.max(W * 0.32, M + HALF + P);
+const WALK_X = CUR.x + CUR.w + 0.6 * P + HALF;       // stop right of the prompt, inside the frame
+const SPEED = 30 * P;                                // world scroll, px/s: an obstacle clears Bit inside one jump
+const JUMP_H = 5.5 * P * BASE;
+// Terminal log: under the ground in the tall frame (fills the empty bottom and stays out of
+// the jump arcs); top-right in landscape/square, where Bit never runs.
+const TALL = fmt === '9x16';
+const TEXT_PX = TALL ? 1.15 * P : fmt === '1x1' ? 0.65 * P : 0.85 * P;
+const TEXT_X = TALL ? M + 1.4 * P : fmt === '1x1' ? W * 0.6 : W * 0.55;
+const TEXT_Y = TALL ? GROUND + 3.2 * P : M + 3 * P;
+
+// ---------- pose helpers (pure functions of time) ----------
+const squash = (dt, a = 0.22) => (dt < 0 ? 0 : a * Math.exp(-dt * 7) * Math.sin(dt * 18));
+const arc = (dt, len, h) => (dt < 0 || dt > len ? 0 : h * 4 * (dt / len) * (1 - dt / len));
+const blinkAt = (t, t0) => t >= t0 && t < t0 + 0.12;
+
+// Draw Bit with feet on `ground`, centred on x. pose: sx, sy, look (-1..1), blink, legs (-1|0|1), ant.
+function drawBit(x, ground, s, pose = {}) {
+  const { sx = 1, sy = 1, look = 0, blink = false, legs = 0, ant = 1 } = pose;
+  const u = P * s;
+  for (const { r, c, ch } of CELLS) {
+    let w = u * sx, h = u * sy;
+    let cx = x + (c - 5) * u * sx;
+    let cy = ground - (8.5 - r) * u * sy;
+    let fill = COL[ch];
+    if (ch === 'W' || ch === 'E') {
+      cx += look * 0.28 * u;
+      const hl = look > 0.3 ? (r === 4 && (c === 4 || c === 7)) : (r === 4 && (c === 3 || c === 6));
+      fill = hl ? COL.W : COL.E;
+      if (blink) fill = r === 4 ? COL.O : COL.E;
+    }
+    if (ch === 'A') { w *= ant; h *= ant; }
+    if (r === 8 && legs && (legs > 0) === (c < 5)) cy -= 0.35 * u;
+    g.fillStyle = fill;
+    g.fillRect(cx - w / 2 - 0.5, cy - h / 2 - 0.5, w + 1, h + 1);
+  }
+}
+
+// ---------- particle formations: each returns {x, y, s} for pixel i ----------
+const spriteForm = (x, ground, s) => (i) => {
+  const { r, c } = CELLS[i];
+  return { x: x + (c - 5) * P * s, y: ground - (8.5 - r) * P * s, s: P * s };
+};
+const cursorForm = (dx) => (i) => {
+  const { r, c } = CELLS[i];
+  return { x: CUR.x + dx + ((c + 0.5) / 11) * CUR.w, y: CUR.y + ((r + 0.5) / 9) * CUR.h, s: Math.max(CUR.w / 11, CUR.h / 9) * 2.2 };
+};
+const textForm = (i) => {
+  const { r, c } = TEXT[i % TEXT.length];
+  return { x: W / 2 + (c - 5) * C, y: H / 2 + (r - 2) * C, s: C };
+};
+
+// Stagger orders, seeded so every frame agrees.
+const byDist = [...CELLS.keys()].sort((a, b) => Math.hypot(CELLS[a].c - 5, CELLS[a].r - 4) - Math.hypot(CELLS[b].c - 5, CELLS[b].r - 4));
+const DIST_RANK = new Array(N); byDist.forEach((p, j) => (DIST_RANK[p] = j));
+const R = rng(42); const RND = [...CELLS.keys()].map(() => R());
+
+// Segment = formation keys + per-pixel stagger + spring feel.
+function seg(i, t, keys, stag, feel) {
+  const f = keys.map(([t0, form]) => [t0, form(i)]);
+  const out = { ...f[0][1] };
+  const prog = [];
+  for (let k = 1; k < f.length; k++) {
+    const p = spring(t - f[k][0] - stag[k - 1](i), ...feel[k - 1]);
+    prog.push(p);
+    for (const key of ['x', 'y', 's']) out[key] += (f[k][1][key] - f[k - 1][1][key]) * p;
+  }
+  return { ...out, prog };
+}
+function drawPixel(p, fill) {
+  g.fillStyle = fill;
+  g.fillRect(p.x - p.s / 2 - 0.5, p.y - p.s / 2 - 0.5, p.s + 1, p.s + 1);
+}
+const own = (i) => COL[CELLS[i].ch];                 // same colours as drawBit's neutral pose
+
+// ---------- world ----------
+function frame() {
+  g.strokeStyle = LINE; g.lineWidth = 2;
+  g.beginPath(); g.roundRect(M, M, W - 2 * M, H - 2 * M, P); g.stroke();
+}
+function prompt(t, cursorOn) {
+  const off = track(t, [[0, 0], [T.run, -W * 0.6], [T.shrink, 0]], [170, 26]);
+  g.font = MONO(1.5 * P); g.textBaseline = 'alphabetic';
+  g.fillStyle = INK;
+  g.fillText('>', PROMPT_X + off, GROUND - 0.25 * P);
+  const n = t < T.run ? typedCount(t) : 0;
+  if (n) g.fillText(TYPED.slice(0, n), CUR.x + off, GROUND - 0.25 * P);
+  if (cursorOn) { g.fillStyle = ORANGE; g.fillRect(CUR.x + n * CHAR_W + off, CUR.y, CUR.w, CUR.h); }
+}
+const LINES = [
+  { s: "bit: hi, i'm bit.", at: T.hello, ink: INK },
+  { s: "const bit = spawn('bit');", at: T.run },
+  { s: 'while (alive) bit.run();', at: T.run + 0.5 },
+  { s: 'if (wall) bit.jump();', at: T.run + 1.0 },
+  { s: 'bit.clone(44);', at: T.run + 1.5 },
+  { s: 'print(bit.name);', at: T.run + 2.0 },
+];
+function lines(t) {
+  if (t < T.hello || t > T.clone + 0.8) return;
+  const leave = track(t, [[0, 0], [T.clone - 0.3, -W * 1.2]], [120, 24]);
+  // Parallax drift only under the ground (tall frame); in landscape it would slide into Bit's jump column.
+  const drift = TALL ? -Math.max(0, t - T.run) * SPEED * 0.06 : 0;
+  g.font = MONO(TEXT_PX, 500); g.textBaseline = 'alphabetic';
+  LINES.forEach((L, k) => {
+    const n = clamp(Math.floor((t - L.at) * 28), 0, L.s.length);
+    if (!n) return;
+    g.fillStyle = L.ink || DIM;
+    g.fillText(L.s.slice(0, n) + (n < L.s.length ? '_' : ''), TEXT_X + drift + leave, TEXT_Y + k * 1.6 * TEXT_PX);
+  });
+}
+const OBST = ['{ }', '< >', '[ ]'];
+function obstacles(t) {
+  if (t < T.run || t >= T.clone) return;
+  g.font = MONO(2.0 * P, 700); g.fillStyle = DIM; g.textBaseline = 'alphabetic'; g.textAlign = 'center';
+  T.jumps.forEach((j, k) => {
+    const x = RUN_X + SPEED * (j + T.jumpLen / 2 - t);
+    if (x > -3 * P && x < W + 3 * P) g.fillText(OBST[k], x, GROUND);
+  });
+  g.fillStyle = LINE;
+  const step = 1.6 * P, phase = ((t - T.run) * SPEED) % step;
+  for (let x = W - M - phase; x > M; x -= step) g.fillRect(x, GROUND + 0.7 * P, 0.18 * P, 0.18 * P);
+  g.textAlign = 'left';
+}
+
+// ---------- clones ----------
+const cellW = 13 * P * CS, cellH = 12 * P * CS;
+const odd = (n) => Math.max(1, n % 2 ? n : n - 1);
+const COLS = odd(Math.floor((W - 2 * M - P) / cellW)), ROWS = odd(Math.floor((H - 2 * M - P) / cellH));
+const cloneHop = (t, a) => {                         // alternate columns on 8th notes
+  let hop = 0, sq = 0;
+  for (let k = 0; k < 6; k++) {
+    if ((k + a) % 2) continue;
+    const b0 = T.clone + 0.5 + k * 0.25;
+    hop += arc(t - b0, 0.3, 4 * P * CS);
+    sq += squash(t - b0 - 0.3, 0.2);
+  }
+  return { hop, sq };
+};
+function clones(t) {
+  if (t < T.clone || t >= T.name + 1) return;
+  for (let a = 0; a < COLS; a++) for (let b = 0; b < ROWS; b++) {
+    const dc = a - (COLS - 1) / 2, dr = b - (ROWS - 1) / 2;
+    if (!dc && !dr) continue;
+    const d = Math.max(Math.abs(dc), Math.abs(dr));
+    const pop = spring(t - T.clone - 0.05 - d * 0.07, 260, 16);
+    const gone = spring(t - T.name - d * 0.03, 320, 30);
+    const s = CS * pop * (1 - gone);
+    if (s < 0.01) continue;
+    const { hop, sq } = cloneHop(t, a);
+    drawBit(W / 2 + dc * cellW, H / 2 + dr * cellH + 4.5 * P * CS - hop, s,
+      { sx: 1 + sq, sy: 1 - sq, look: Math.sign(-dc) * 0.5 });
+  }
+}
+
+// ---------- the main character through the film ----------
+function bit(t) {
+  if (t >= T.explode && t < T.land) {
+    const keys = [[0, cursorForm(TYPED.length * CHAR_W)], [T.explode, spriteForm(W / 2, GROUND, BASE)]];
+    for (let i = 0; i < N; i++) {
+      const p = seg(i, t, keys, [(j) => DIST_RANK[j] * 0.006], [[240, 17]]);
+      drawPixel(p, p.prog[0] > 0.5 ? own(i) : ORANGE);
+    }
+    return;
+  }
+  if (t >= T.name && t < T.hero + 1.0) {
+    const keys = [[0, spriteForm(W / 2, CLONE_GROUND, CS)], [T.name, textForm], [T.hero, spriteForm(W / 2, GIANT_GROUND, GIANT)]];
+    const glitching = t >= T.glitch && t < T.glitch + 0.25;
+    const jr = rng(Math.floor(t * 24) * 7 + 1);
+    const rowJit = [0, 0, 0, 0, 0].map(() => (glitching ? (jr() - 0.5) * 0.8 * C : 0));
+    for (let i = 0; i < N; i++) {
+      const p = seg(i, t, keys, [(j) => RND[j] * 0.3, (j) => DIST_RANK[j] * 0.006], [[240, 17], [320, 26]]);
+      if (p.prog[1] < 0.5) p.x += rowJit[TEXT[i % TEXT.length].r] * (1 - p.prog[1]);
+      drawPixel(p, p.prog[1] > 0.5 ? own(i) : p.prog[0] > 0.5 ? ORANGE : own(i));
+    }
+    return;
+  }
+  if (t >= T.collapse) {
+    if (t >= T.solid) return;                          // cursor takes over (drawn by prompt)
+    const keys = [[0, spriteForm(WALK_X, GROUND, BASE)], [T.collapse, cursorForm(0)]];
+    for (let i = 0; i < N; i++) {
+      const p = seg(i, t, keys, [(j) => DIST_RANK[j] * 0.003], [[320, 30]]);
+      drawPixel(p, p.prog[0] > 0.5 ? ORANGE : own(i));
+    }
+    return;
+  }
+  if (t < T.explode) return;
+
+  let x = W / 2, ground = GROUND, s = BASE, sq = squash(t - T.land), look = 0, legs = 0, ant = 1, blink = false, lift = 0;
+  if (t < T.run) {                                     // HELLO
+    blink = blinkAt(t, T.blink1);
+    look = t >= T.lookL && t < T.lookR ? -1 : t >= T.lookR && t < T.hop ? 1 : 0;
+    lift = arc(t - T.hop, 0.5, 2.5 * P * BASE);
+    sq += squash(t - T.hop - 0.5);
+    if (t >= T.hop && t < T.hop + 0.5) sq -= 0.12;
+  } else if (t < T.name) {                             // RUN, then CLONE
+    x = track(t, [[0, W / 2], [T.run, RUN_X], [T.clone, W / 2]], [170, 26]);
+    s = track(t, [[0, BASE], [T.clone, CS]], [260, 20]);
+    ground = track(t, [[0, GROUND], [T.clone, CLONE_GROUND]], [260, 20]);
+    sq += squash(t - T.hop - 0.5);
+    if (t < T.clone) {
+      legs = Math.floor(t / 0.1) % 2 ? 1 : -1;
+      lift = Math.abs(Math.sin(t * Math.PI * 10)) * 0.2 * P * BASE;
+      for (const j of T.jumps) {
+        if (t >= j && t < j + T.jumpLen) { lift = arc(t - j, T.jumpLen, JUMP_H); sq = -0.1; legs = 0; }
+        sq += squash(t - j - T.jumpLen);
+      }
+      look = 1;
+    } else {
+      const c = cloneHop(t, (COLS - 1) / 2);
+      lift = c.hop; sq += c.sq;
+    }
+  } else {                                             // HERO, SHRINK, WALK
+    s = track(t, [[0, GIANT], [T.shrink, BASE]], [200, 24]);
+    ground = track(t, [[0, GIANT_GROUND], [T.shrink, GROUND]], [200, 24]);
+    const dt = t - T.ding;
+    ant = 1 + (dt >= 0 ? 0.9 * Math.exp(-dt * 6) + squash(dt, 0.9) : 0);
+    blink = blinkAt(t, T.blink2);
+    look = t >= T.lookL2 && t < T.lookR2 ? -1 : t >= T.lookR2 && t < T.blink2 ? 1 : 0;
+    sq += (t < T.shrink ? 0.02 * Math.sin((t - T.hero) * Math.PI * 2) : 0) + squash(t - T.shrink, 0.15);
+    if (t >= T.walk) {
+      const p = clamp((t - T.walk) / (T.collapse - 0.05 - T.walk));
+      x = lerp(W / 2, WALK_X, p * p * (3 - 2 * p));
+      look = -1;
+      legs = p < 1 ? (Math.floor(t / 0.115) % 2 ? 1 : -1) : 0;
+      lift = p < 1 ? Math.abs(Math.sin((t - T.walk) * Math.PI / 0.23)) * 0.5 * P * BASE : 0;
+    }
+  }
+  drawBit(x, ground - lift, s, { sx: 1 + sq, sy: 1 - sq, look, blink, legs, ant });
+}
+
+function draw(t) {
+  g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  frame();
+  g.save();                                          // the world lives inside the terminal frame
+  g.beginPath(); g.roundRect(M + 1, M + 1, W - 2 * M - 2, H - 2 * M - 2, P - 1); g.clip();
+  lines(t);
+  obstacles(t);
+  const solid = t < T.typed[0] || t >= T.solid;
+  const blinkOn = solid || ((t - T.typed[0]) % 0.25) < 0.15;
+  prompt(t, t < T.explode ? blinkOn : t >= T.solid);
+  clones(t);
+  bit(t);
+  g.restore();
+}
+window.seek = (t) => { draw(t); return true; };
+
+if (!navigator.webdriver) {
+  const t0 = performance.now();
+  (function loop() { draw(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); })();
+}
+document.fonts.ready.then(() => { window.READY = true; });
+</script>
