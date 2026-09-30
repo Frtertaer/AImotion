@@ -1,0 +1,47 @@
+<div class="card" data-card-id="card-04">
+  <style>
+    .card[data-card-id="card-04"] .root {
+      position: relative; width: 100%; height: 100%;
+      background: transparent; font-family: 'Inter', sans-serif;
+    }
+    .card[data-card-id="card-04"] .band {
+      position: absolute; left: 44px; right: 44px; top: 1380px;
+      background: var(--paper); border-radius: 28px;
+      padding: 40px 44px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+    .card[data-card-id="card-04"] .kick {
+      font-size: 21px; font-weight: 600; letter-spacing: .14em;
+      color: var(--accent-3); margin-bottom: 18px;
+    }
+    .card[data-card-id="card-04"] .title {
+      font-family: 'Unbounded', sans-serif; font-weight: 800;
+      font-size: 100px; line-height: .98; color: var(--ink);
+    }
+    .card[data-card-id="card-04"] .title .accent { color: var(--accent-3); }
+    .card[data-card-id="card-04"] .detail {
+      font-family: 'Caveat', cursive; font-weight: 700;
+      font-size: 46px; color: var(--ink); opacity: .75;
+      margin-top: 16px; transform: rotate(-1.2deg);
+    }
+    .card[data-card-id="card-04"] .bud {
+      position: absolute;
+      width: 60px; height: 84px;
+      background: var(--paper);
+      border-radius: 30px 30px 34px 34px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+      border: 3px solid var(--ink);
+      opacity: 0;
+    }
+  </style>
+  <div class="root">
+    <div class="bud" id="c04-b1" style="left:200px;top:980px;"></div>
+    <div class="bud" id="c04-b2" style="left:520px;top:940px;"></div>
+    <div class="bud" id="c04-b3" style="left:830px;top:1000px;"></div>
+    <div class="band" id="c04-band">
+      <div class="kick" id="c04-kick" data-anim="fade-in" data-anim-at="0.15" data-anim-duration="0.4">ПРИЗНАНИЕ</div>
+      <h1 class="title" id="c04-title" data-anim="kinetic-chars" data-anim-at="0.3" data-anim-duration="0.5" data-anim-stagger="0.03" data-anim-pattern="pop"><span class="char">У</span><span class="char">Х</span><span class="char">О</span><span class="char"> </span><span class="accent"><span class="char">Е</span><span class="char">Б</span><span class="char">А</span><span class="char">Н</span><span class="char">О</span><span class="char">Е</span></span></h1>
+      <div class="detail" id="c04-detail" data-anim="blur-in" data-anim-at="0.9" data-anim-duration="0.6">«из него вываливается»</div>
+    </div>
+  </div>
+</div>
