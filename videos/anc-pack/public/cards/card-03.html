@@ -1,0 +1,47 @@
+<div class="card" data-card-id="card-03">
+  <style>
+    .card[data-card-id="card-03"] .root {
+      position: relative; width: 100%; height: 100%;
+      background: transparent; font-family: 'Inter', sans-serif;
+    }
+    .card[data-card-id="card-03"] .seal {
+      position: absolute; left: 90px; top: 560px;
+      width: 900px; height: 420px;
+      border: 3px solid var(--accent-2);
+      border-radius: 36px;
+      background: rgba(247,37,133,.08);
+    }
+    .card[data-card-id="card-03"] .seallabel {
+      position: absolute; left: 120px; top: 528px;
+      background: var(--accent-2); color: var(--paper);
+      font-size: 20px; font-weight: 600; letter-spacing: .16em;
+      padding: 10px 22px; border-radius: 999px;
+    }
+    .card[data-card-id="card-03"] .title {
+      position: absolute; left: 130px; top: 640px;
+      font-family: 'Unbounded', sans-serif; font-weight: 800;
+      font-size: 96px; line-height: 1.0; color: var(--paper);
+    }
+    .card[data-card-id="card-03"] .title .accent { color: var(--accent-2); }
+    .card[data-card-id="card-03"] .detail {
+      position: absolute; left: 134px; top: 880px;
+      font-family: 'Caveat', cursive; font-weight: 700;
+      font-size: 46px; color: var(--paper); opacity: .8;
+      transform: rotate(-1.4deg);
+    }
+    .card[data-card-id="card-03"] .cross {
+      position: absolute; left: 90px; top: 560px;
+      width: 900px; height: 420px;
+    }
+  </style>
+  <div class="root">
+    <div class="seal" id="c03-seal" data-anim="fade-in" data-anim-at="0.1" data-anim-duration="0.3"></div>
+    <div class="seallabel" id="c03-label" data-anim="scale-pop" data-anim-at="0.35" data-anim-duration="0.4">VACUUM SEAL</div>
+    <h1 class="title" id="c03-title" data-anim="kinetic-chars" data-anim-at="0.3" data-anim-duration="0.5" data-anim-stagger="0.024" data-anim-pattern="pop"><span class="char">Н</span><span class="char">Е</span><span class="char">Н</span><span class="char">А</span><span class="char">В</span><span class="char">И</span><span class="char">Ж</span><span class="char">У</span><br/><span class="accent"><span class="char">В</span><span class="char">А</span><span class="char">К</span><span class="char">У</span><span class="char">У</span><span class="char">М</span><span class="char">К</span><span class="char">И</span></span></h1>
+    <svg class="cross" viewBox="0 0 900 420" fill="none">
+      <path id="c03-x1" d="M 60 60 L 840 360" stroke="var(--accent-2)" stroke-width="14" stroke-linecap="round" data-anim="draw-path" data-anim-at="0.9" data-anim-duration="0.4"/>
+      <path id="c03-x2" d="M 840 60 L 60 360" stroke="var(--accent-2)" stroke-width="14" stroke-linecap="round" data-anim="draw-path" data-anim-at="1.2" data-anim-duration="0.4"/>
+    </svg>
+    <div class="detail" id="c03-detail" data-anim="fade-in" data-anim-at="1.7" data-anim-duration="0.5">«у меня прошлых нет»</div>
+  </div>
+</div>

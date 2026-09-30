@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 3,
+  "composition": {
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "durationSeconds": 28.888,
+    "layout": "portrait",
+    "themeId": "noir",
+    "seed": 7
+  },
+  "videoTrack": {
+    "sourcePath": "input-video.mp4",
+    "startSec": 0,
+    "endSec": 28.888,
+    "bounds": { "x": 0, "y": 0, "width": 1080, "height": 1920 }
+  },
+  "subtitles": { "enabled": false },
+  "cards": [
+    {
+      "id": "card-01",
+      "intent": "Hook verdict: sound is 'normal' — his exact rating stamped editorial",
+      "startSec": 0.3,
+      "endSec": 6.8,
+      "accentIndex": 0,
+      "zone": "video-overlay",
+      "contentHints": {
+        "kicker": "ОБЗОР · AIRPODS · ПРЯМОЙ ЭФИР",
+        "title": "НОРМАЛЬНЫЙ ЗВУК",
+        "quote": "«не прям заебись — нормальный»"
+      }
+    },
+    {
+      "id": "card-02",
+      "intent": "Why he likes them: open type + ear diagram, bud resting in concha",
+      "startSec": 6.8,
+      "endSec": 12.4,
+      "accentIndex": 1,
+      "zone": "video-overlay",
+      "contentHints": {
+        "title": "ОТКРЫТОГО ТИПА",
+        "detail": "лежит в ухе — без вакуума",
+        "diagram": "ear arc + bud dot"
+      }
+    },
+    {
+      "id": "card-03",
+      "intent": "The enemy declared: vacuum in-ear buds, sealed chip slashed",
+      "startSec": 12.4,
+      "endSec": 15.4,
+      "accentIndex": 2,
+      "zone": "video-overlay",
+      "contentHints": {
+        "title": "НЕНАВИЖУ ВАКУУМКИ",
+        "detail": "у меня прошлых нет"
+      }
+    },
+    {
+      "id": "card-04",
+      "intent": "Confession: his ear is weird — buds fall out (falling bud glyphs)",
+      "startSec": 15.4,
+      "endSec": 20.3,
+      "accentIndex": 3,
+      "zone": "video-overlay",
+      "contentHints": {
+        "title": "УХО — ЕБАНОЕ",
+        "detail": "из него вываливается"
+      }
+    },
+    {
+      "id": "card-05",
+      "intent": "The anatomy claim: wide ear canal — width meter across the frame",
+      "startSec": 20.3,
+      "endSec": 23.3,
+      "accentIndex": 0,
+      "zone": "video-overlay",
+      "contentHints": {
+        "title": "ДЫРКА ШИРОКАЯ",
+        "data": "ушная дырка — широкая"
+      }
+    },
+    {
+      "id": "card-06",
+      "intent": "Finale thesis: concha holds open type — paper field + verdict stack",
+      "startSec": 23.3,
+      "endSec": 28.888,
+      "accentIndex": 4,
+      "zone": "fullscreen",
+      "contentHints": {
+        "title": "РАКОВИНА ДЕРЖИТ",
+        "verdict": "ЗВУК НОРМАЛЬНЫЙ / ТИП ОТКРЫТЫЙ / ВАКУУМ — НЕТ",
+        "stamp": "ОТКРЫТЫЙ ТИП"
+      }
+    }
+  ]
+}
