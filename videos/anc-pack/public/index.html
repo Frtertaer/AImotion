@@ -135,6 +135,94 @@
       .card[data-card-id="card-06"] .row { padding: 16px 0; font-size: 30px; }
       .card[data-card-id="card-06"] .row .v { font-size: 28px; }
       .card[data-card-id="card-06"] .stamp { border-radius: 4px !important; letter-spacing: -.04em; }
+      /* Final typographic hierarchy and readable verdict treatment. */
+      .card .title {
+        font-family: "Unbounded", sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -.045em !important;
+        line-height: 1.06 !important;
+        margin: 0 !important;
+      }
+      .card .kick, .card .detail, .card .quote, .card .row, .card .lm, .card .li {
+        font-family: "Inter", sans-serif !important;
+        letter-spacing: .01em;
+        line-height: 1.08;
+      }
+      .card[data-card-id="card-06"] .final-lockup {
+        position: absolute;
+        left: 70px;
+        top: 1260px;
+        width: 940px;
+        height: 430px;
+        padding: 42px 28px 30px;
+        background: #0c0a0d;
+        color: #f4f2ec;
+        border: 8px solid #0c0a0d;
+        z-index: 4;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .card[data-card-id="card-06"] .final-lockup-primary {
+        position: relative;
+        z-index: 2;
+        margin: 0;
+        font-family: "Unbounded", sans-serif;
+        font-size: 82px;
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: -.055em;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        min-height: 142px;
+      }
+      .card[data-card-id="card-06"] .verdict-o {
+        display: inline-flex;
+        position: relative;
+        width: 132px;
+        height: 132px;
+        align-items: center;
+        justify-content: center;
+        margin: 0 7px;
+        border: 0;
+        border-radius: 50%;
+        color: #f4f2ec;
+        vertical-align: middle;
+        letter-spacing: -.08em;
+        flex: 0 0 132px;
+      }
+      .card[data-card-id="card-06"] .verdict-o svg {
+        position: absolute;
+        inset: 0;
+        width: 132px;
+        height: 132px;
+      }
+      .card[data-card-id="card-06"] .verdict-o .counter {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        color: #f4f2ec;
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: .02em;
+        white-space: nowrap;
+      }
+      .card[data-card-id="card-06"] .final-lockup-secondary {
+        position: relative;
+        z-index: 2;
+        margin: 30px 0 0;
+        color: #f4f2ec;
+        font-family: "Inter", sans-serif;
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.08;
+        letter-spacing: .08em;
+      }
     </style>
   </head>
   <body>
@@ -214,174 +302,39 @@
         <circle id="grandO-ring" cx="540" cy="880" r="560" stroke="#f0b13c" stroke-width="15" stroke-linecap="round" stroke-dasharray="3519" stroke-dashoffset="3519" opacity="0"/>
       </svg>
 
-      <div class="card-host clip" id="host-card-01" data-card-id="card-06" data-start="0.3000" data-duration="6.5000" data-track-index="2" style="left:0;top:0;width:1080px;height:1920px;visibility:hidden;opacity:0;">
-  <div class="card" data-card-id="card-06">
-    <style>
-      .card[data-card-id="card-06"] .root{
-        position:relative;
-        width:100%;
-        height:100%;
-        background:transparent;
-        font-family:'Inter',sans-serif;
-      }
+      <div class="card-host clip" id="host-card-01" data-card-id="card-01" data-start="0.3000" data-duration="6.5000" data-track-index="2" style="left:0;top:0;width:1080px;height:1920px;visibility:hidden;opacity:0;">
+  <div class="card" data-card-id="card-01">
+    <div class="root" style="position:relative;width:100%;height:100%;font-family:'Inter',sans-serif;">
+      <svg id="c06-card-canal" viewBox="0 0 1080 1920" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;">
+        <circle cx="540" cy="840" r="336" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="5"/>
+        <circle cx="540" cy="840" r="286" fill="none" stroke="#2a52be" stroke-width="18" stroke-linecap="round" stroke-dasharray="1540 258" transform="rotate(-42 540 840)"/>
+        <path d="M760 584 C838 646 876 726 876 812 C876 927 804 1024 696 1062" fill="none" stroke="#2a52be" stroke-width="18" stroke-linecap="round"/>
+        <path d="M872 842 C790 842 737 865 690 910 C652 947 618 978 564 989" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round"/>
+        <path d="M852 890 C791 890 751 907 716 940" fill="none" stroke="#0c0a0d" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="540" cy="840" r="204" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="3"/>
+        <path d="M540 636 A204 204 0 0 1 736 784" fill="none" stroke="#2a52be" stroke-width="18" stroke-linecap="round"/>
+        <path d="M540 840 C595 840 617 840 659 840" fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
+      </svg>
 
-      .card[data-card-id="card-06"] .panel{
-        position:absolute;
-        left:64px;
-        top:320px;
-        width:952px;
-        height:1190px;
-        box-sizing:border-box;
-        background:#f4f2ec;
-        border-radius:476px 476px 56px 56px;
-        overflow:hidden;
-      }
-
-      .card[data-card-id="card-06"] .title{
-        position:absolute;
-        left:92px;
-        top:510px;
-        z-index:2;
-        margin:0;
-        color:#0c0a0d;
-        font-family:'Unbounded',sans-serif;
-        font-size:112px;
-        font-weight:800;
-        line-height:1.06;
-        letter-spacing:-.075em;
-        white-space:nowrap;
-      }
-
-      .card[data-card-id="card-06"] .title .char{
-        display:inline-block;
-        transform-origin:50% 50%;
-      }
-
-      .card[data-card-id="card-06"] .detail{
-        position:absolute;
-        left:96px;
-        bottom:108px;
-        z-index:3;
-        margin:0;
-        padding:15px 22px 14px;
-        background:#0c0a0d;
-        color:#f4f2ec;
-        font-family:'Inter',sans-serif;
-        font-size:22px;
-        font-weight:600;
-        line-height:1.06;
-        letter-spacing:.13em;
-      }
-
-      .card[data-card-id="card-06"] .stamp{
-        position:absolute;
-        right:94px;
-        bottom:112px;
-        z-index:3;
-        margin:0;
-        color:#0c0a0d;
-        font-family:'Inter',sans-serif;
-        font-size:20px;
-        font-weight:600;
-        line-height:1.06;
-        letter-spacing:.12em;
-      }
-
-      .card[data-card-id="card-06"] .canal{
-        position:absolute;
-        left:72px;
-        top:82px;
-        width:808px;
-        height:808px;
-        z-index:1;
-        overflow:visible;
-      }
-    </style>
-
-    <div class="root">
-      <div class="panel" id="c06-card-panel">
-
-        <svg class="canal" id="c06-card-canal" viewBox="0 0 808 808" aria-hidden="true">
-          <circle
-            cx="404"
-            cy="404"
-            r="292"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="18"
-            stroke-linecap="round"
-            stroke-dasharray="1650 185"
-            transform="rotate(-34 404 404)"
-          />
-
-          <path
-            d="M622 196
-               C690 238 726 310 726 392
-               C726 512 648 612 538 650"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="18"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M704 424
-               C640 424 601 440 560 482
-               C530 512 500 542 454 560"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="10"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M694 474
-               C637 474 610 490 578 520"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="7"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M674 527
-               C639 527 619 539 598 558"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="5"
-            stroke-linecap="round"
-          />
-
-          <circle
-            cx="404"
-            cy="404"
-            r="226"
-            fill="#f4f2ec"
-            stroke="#0c0a0d"
-            stroke-width="3"
-          />
-
-          <path
-            d="M404 178
-               A226 226 0 0 1 622 344"
-            fill="none"
-            stroke="#2a52be"
-            stroke-width="18"
-            stroke-linecap="round"
-          />
-        </svg>
-
-        <h1 class="title" id="c06-card-title">
-          <span class="char" style="transform:scaleX(.86);">С</span><span class="char" style="transform:scaleX(.92);">Л</span><span class="char" style="transform:scaleX(.82);">Ы</span><span class="char" style="transform:scaleX(.9);">Ш</span><span class="char" style="transform:scaleX(.84);">Н</span><span class="char" style="transform:scaleX(.9);">О</span>
-        </h1>
-
-        <p class="detail" id="c06-card-detail">ВОЗДУХ ВХОДИТ</p>
-        <p class="stamp" id="c06-card-stamp">ОТКРЫТАЯ ПОСАДКА</p>
+      <div id="c06-card-title-plate" style="position:absolute;left:170px;top:1164px;width:740px;min-height:154px;box-sizing:border-box;padding:30px 28px;background:#f4f2ec;text-align:center;">
+        <div id="c06-card-title" style="width:456px;height:130px;margin:0 auto;">
+          <svg id="c01-word" viewBox="0 0 456 150" style="display:block;width:456px;height:130px;overflow:visible;">
+            <g transform="translate(8 146) scale(1.0)"><path class="c01w" data-ch="С" d="M50 -114 C46 -132 38 -140 30 -140 C10 -140 6 -110 6 -70 C6 -21 10 0 30 0 C38 0 46 -8 50 -26" transform="translate(0 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="233" stroke-dashoffset="233"/>
+<path class="c01w" data-ch="Л" d="M8 0 C8 -50 14 -100 30 -140 L49 -140 L49 0" transform="translate(76 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="302" stroke-dashoffset="302"/>
+<path class="c01w" data-ch="Ы" d="M7 0 L7 -140 M7 -64 C22 -64 34 -52 34 -32 C34 -12 22 0 7 0 M58 0 L58 -140" transform="translate(148 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="374" stroke-dashoffset="374"/>
+<path class="c01w" data-ch="Ш" d="M7 0 L7 -140 M31 0 L31 -140 M55 0 L55 -140 M7 0 L55 0" transform="translate(228 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="468" stroke-dashoffset="468"/>
+<path class="c01w" data-ch="Н" d="M7 0 L7 -140 M49 0 L49 -140 M7 -64 L49 -64" transform="translate(306 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="322" stroke-dashoffset="322"/>
+<path class="c01w" data-ch="О" d="M31 -70 m-26 0 a26 70 0 1 0 52 0 a26 70 0 1 0 -52 0" transform="translate(378 0)" fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="572" stroke-dashoffset="572"/>
+            </g>
+          </svg>
+        </div>
       </div>
+
+      <p id="c06-card-detail" style="position:absolute;left:360px;top:1360px;margin:0;padding:12px 18px;background:#0c0a0d;color:#f4f2ec;font-family:'Inter',sans-serif;font-size:20px;font-weight:600;line-height:1.1;letter-spacing:.12em;">ВОЗДУХ ПРОХОДИТ</p>
     </div>
   </div>
-</div><div class="card-host clip" id="host-card-02" data-card-id="card-06" data-start="6.8000" data-duration="5.6000" data-track-index="2" style="left:0;top:0;width:1080px;height:1920px;visibility:hidden;opacity:0;">
-  <div class="card" data-card-id="card-06">
+</div><div class="card-host clip" id="host-card-02" data-card-id="card-02" data-start="6.8000" data-duration="5.6000" data-track-index="2" style="left:0;top:0;width:1080px;height:1920px;visibility:hidden;opacity:0;">
+  <div class="card" data-card-id="card-02">
     <div class="root" style="position:relative;width:100%;height:100%;background:transparent;font-family:'Inter',sans-serif;overflow:hidden;">
 
       <div class="panel" style="position:absolute;left:72px;right:72px;top:184px;height:1450px;background:#0c0a0d;border-radius:520px 520px 42px 42px;overflow:hidden;">
@@ -689,134 +642,92 @@
   <div class="card" data-card-id="card-06">
     <div class="root" style="position:relative;width:100%;height:100%;overflow:hidden;background:#f4f2ec;color:#0c0a0d;font-family:'Inter',sans-serif;">
 
-      <svg aria-hidden="true" style="position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:visible;">
-        <circle cx="540" cy="690" r="268" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="7"></circle>
-        <circle cx="540" cy="690" r="214" fill="none" stroke="#0c0a0d" stroke-width="2"></circle>
-
-        <path d="M540 422
-                 C392 422 286 538 286 690
-                 C286 842 392 958 540 958"
+      <svg aria-hidden="true" style="position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;">
+        <!-- open concha ring -->
+        <circle cx="540" cy="650" r="252" fill="none" stroke="#0c0a0d" stroke-width="7"></circle>
+        <path d="M540 398 A252 252 0 0 1 792 650"
               fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"></path>
-
-        <path d="M540 422
-                 C688 422 794 538 794 690
-                 C794 842 688 958 540 958"
+        <path d="M540 902 A252 252 0 0 1 288 650"
               fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round"></path>
 
-        <path d="M323 690
-                 C380 630 432 630 490 690
-                 C548 750 600 750 657 690
-                 C714 630 755 630 797 668"
+        <!-- inner canal -->
+        <path d="M540 438
+                 C421 438 328 531 328 650
+                 C328 769 421 862 540 862"
+              fill="none" stroke="#0c0a0d" stroke-width="3"></path>
+
+        <path d="M540 486
+                 C449 486 376 559 376 650
+                 C376 741 449 814 540 814"
+              fill="none" stroke="#0c0a0d" stroke-width="3" stroke-dasharray="12 16"></path>
+
+        <!-- aperture -->
+        <circle id="c06-mouth" cx="540" cy="650" r="76" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="7"></circle>
+        <circle cx="540" cy="650" r="13" fill="#2a52be"></circle>
+
+        <!-- airflow exits the aperture and becomes the title baseline -->
+        <path d="M616 650
+                 C674 650 702 620 756 620
+                 C808 620 842 648 900 648
+                 C944 648 964 630 992 606"
               fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"></path>
 
-        <path d="M323 690
-                 C380 750 432 750 490 690
-                 C548 630 600 630 657 690
-                 C714 750 755 750 797 712"
-              fill="none" stroke="#2a52be" stroke-width="3" stroke-linecap="round" opacity=".45"></path>
+        <path d="M616 672
+                 C674 672 706 700 756 700
+                 C808 700 840 674 900 674
+                 C938 674 963 690 992 714"
+              fill="none" stroke="#0c0a0d" stroke-width="3" stroke-linecap="round"></path>
 
-        <circle id="c06-mouth" cx="540" cy="690" r="86" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="7"></circle>
-        <circle cx="540" cy="690" r="21" fill="#2a52be"></circle>
+        <!-- pressure stream descending toward the lettering -->
+        <path d="M992 606
+                 C950 756 896 884 830 1016
+                 C804 1068 788 1100 772 1136"
+              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"></path>
 
-        <path d="M540 604
-                 C582 604 618 638 626 678"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"></path>
-        <path d="M626 702
-                 C618 742 582 776 540 776"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"></path>
+        <path d="M992 714
+                 C944 820 906 914 872 1000
+                 C850 1052 836 1090 824 1136"
+              fill="none" stroke="#0c0a0d" stroke-width="3" stroke-linecap="round"></path>
+
+        <circle cx="772" cy="1136" r="10" fill="#2a52be"></circle>
+        <circle cx="824" cy="1136" r="6" fill="#0c0a0d"></circle>
       </svg>
 
-      <div id="c06-title" class="title" style="position:absolute;left:112px;top:1128px;width:856px;height:296px;margin:0;padding:0;box-sizing:border-box;overflow:visible;background:#f4f2ec;color:#0c0a0d;font-family:'Unbounded',sans-serif;font-size:60px;font-weight:500;line-height:1.08;letter-spacing:-.075em;">
-        <div class="final-lockup-primary" style="position:relative;height:126px;margin:0;padding:0;white-space:nowrap;line-height:1.06;background:#f4f2ec;color:#0c0a0d;">ПРОПУСКАЕТ</div>
+      <div class="title" id="c06-title" style="position:absolute;left:96px;top:1120px;width:888px;padding:34px 34px 38px 34px;box-sizing:border-box;background:#f4f2ec;border-top:7px solid #0c0a0d;border-bottom:7px solid #0c0a0d;">
 
-        <div style="position:relative;height:104px;margin:0;padding:0 0 0 18px;white-space:nowrap;line-height:1.08;background:#f4f2ec;color:#2a52be;" class="final-lockup-secondary">
-          <span class="char c06p" style="display:inline-block;margin:0;transform:translateY(10px) scaleX(.91);transform-origin:center center;">В</span><span class="char c06p" style="display:inline-block;margin:0;transform:translateY(4px) scaleX(.89);transform-origin:center center;">О</span><span class="char c06p" style="display:inline-block;margin:0;transform:translateY(-4px) scaleX(.93);transform-origin:center center;">З</span><span class="char c06p" style="display:inline-block;margin:0;transform:translateY(-10px) scaleX(.95);transform-origin:center center;">Д</span><span class="char c06p" style="display:inline-block;margin:0;transform:translateY(-5px) scaleX(.90);transform-origin:center center;">У</span><span class="char c06p" style="display:inline-block;margin:0;transform:translateY(4px) scaleX(.94);transform-origin:center center;">Х</span>
+        <div style="height:142px;display:flex;align-items:center;white-space:nowrap;font-family:'Unbounded',sans-serif;font-size:112px;font-weight:700;letter-spacing:-6px;line-height:1.06;">
+          <span class="char c06z" style="display:inline-block;transform:scaleX(.92);transform-origin:left center;">К</span>
+          <span class="char c06z" style="display:inline-block;transform:scaleX(.98);transform-origin:left center;">А</span>
+          <span class="char c06z" style="display:inline-block;transform:scaleX(.90);transform-origin:left center;">Н</span>
+          <span class="char c06z" style="display:inline-block;transform:scaleX(.98);transform-origin:left center;">А</span>
+          <span class="char c06z" style="display:inline-block;transform:scaleX(.88);transform-origin:left center;">Л</span>
         </div>
 
-        <div style="position:absolute;left:20px;top:230px;width:420px;height:7px;margin:0;background:#2a52be;border-radius:7px;"></div>
+        <div style="height:142px;display:flex;align-items:center;white-space:nowrap;font-family:'Unbounded',sans-serif;font-size:112px;font-weight:700;letter-spacing:-7px;line-height:1.06;">
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.88);transform-origin:left center;">О</span>
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.92);transform-origin:left center;">Т</span>
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.90);transform-origin:left center;">К</span>
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.96);transform-origin:left center;">Р</span>
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.96);transform-origin:left center;">Ы</span>
+          <span class="char c06p" style="display:inline-block;transform:scaleX(.88);transform-origin:left center;">Т</span>
+        </div>
+
+        <div style="position:absolute;right:34px;bottom:-7px;width:174px;height:7px;background:#2a52be;"></div>
+      </div>
+
+      <div class="final-lockup" id="c06-final-lockup">
+        <svg aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;overflow:visible;">
+          <path id="c06-final-flow" d="M18 360 C220 360 330 360 470 360 S720 360 920 360" fill="none" stroke="#2a52be" stroke-width="12" stroke-linecap="round" stroke-dasharray="920" stroke-dashoffset="920" opacity="0"/>
+          <circle id="c06-impact-a" cx="470" cy="360" r="68" fill="none" stroke="#2a52be" stroke-width="8" opacity="0"/>
+          <circle id="c06-impact-b" cx="470" cy="360" r="68" fill="none" stroke="#f4f2ec" stroke-width="4" opacity="0"/>
+        </svg>
+        <div class="final-lockup-primary" id="c06-stamp">ПР<span class="verdict-o" aria-label="О"><svg viewBox="0 0 132 132" aria-hidden="true"><path d="M14 66 H30" fill="none" stroke="#2a52be" stroke-width="10" stroke-linecap="round"/><ellipse cx="70" cy="66" rx="43" ry="55" fill="none" stroke="#2a52be" stroke-width="13"/></svg><span class="counter">23.3—28.888</span></span>ПУСКАЕТ</div>
+        <div class="final-lockup-secondary">ВОЗДУХ ПРОХОДИТ · КАНАЛ ОТКРЫТ</div>
       </div>
 
     </div>
   </div>
-</div><svg id="c06-canal" aria-hidden="true" style="position:absolute;left:88px;top:700px;width:904px;height:760px;overflow:visible;">
-        <path d="M176 448 C112 394 91 306 117 226 C148 132 232 77 332 76 C447 74 517 143 543 227"
-              fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round"/>
-        <path d="M190 504 C286 557 409 550 491 490 C548 448 579 385 584 318"
-              fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round"/>
-        <path d="M142 331 C185 295 222 279 271 278 C324 277 365 292 402 321"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
-        <path d="M138 366 C194 342 236 334 281 337 C326 340 361 352 395 373"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
-        <path d="M471 238 C523 230 570 247 608 282 C645 316 665 356 676 406"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
-        <path d="M481 287 C526 286 560 302 588 328 C614 353 628 382 635 419"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
-        <path d="M583 318 C623 313 663 323 698 348 C735 374 758 406 771 446"
-              fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round"/>
-        <circle id="c06-mouth" cx="426" cy="315" r="112" fill="#f4f2ec" stroke="#2a52be" stroke-width="7"></circle>
-        <circle cx="426" cy="315" r="76" fill="none" stroke="#0c0a0d" stroke-width="7"></circle>
-        <path d="M367 315 C384 292 404 281 426 281 C449 281 470 293 486 315 C470 337 449 349 426 349 C403 349 383 337 367 315Z"
-              fill="#f4f2ec" stroke="#2a52be" stroke-width="7" stroke-linejoin="round"/>
-        <path d="M207 586 C329 631 472 632 592 579 C680 540 742 484 781 410"
-              fill="none" stroke="#2a52be" stroke-width="7" stroke-linecap="round"/>
-      </svg>
-
-    </div>
-  </div>
-</div><svg id="c06-canal" viewBox="0 0 1080 900" style="position:absolute;left:0;top:430px;width:1080px;height:900px;overflow:visible;" aria-hidden="true">
-        <path d="M566 92
-                 C386 92 244 238 244 456
-                 C244 686 386 808 566 808
-                 C746 808 858 680 858 492
-                 C858 354 800 226 696 150"
-              fill="none" stroke="#0c0a0d" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
-
-        <path d="M566 176
-                 C452 176 350 294 350 456
-                 C350 622 450 714 566 714
-                 C684 714 754 624 754 502"
-              fill="none" stroke="#0c0a0d" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 25"/>
-
-        <path d="M696 150
-                 C660 122 616 104 566 98"
-              fill="none" stroke="#2a52be" stroke-width="11" stroke-linecap="round"/>
-
-        <path d="M696 150
-                 C742 174 776 208 804 250"
-              fill="none" stroke="#f4f2ec" stroke-width="42" stroke-linecap="round"/>
-
-        <path d="M64 456
-                 C190 410 298 414 390 448
-                 C456 472 510 480 566 456"
-              fill="none" stroke="#2a52be" stroke-width="10" stroke-linecap="round"/>
-
-        <path d="M64 456 L112 432 M64 456 L112 480"
-              fill="none" stroke="#2a52be" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-
-        <path d="M1016 456
-                 C914 420 834 420 760 448"
-              fill="none" stroke="#0c0a0d" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 22"/>
-
-        <circle cx="566" cy="456" r="154" fill="#f4f2ec" stroke="#0c0a0d" stroke-width="10"/>
-
-        <circle id="c06-mouth" cx="566" cy="456" r="76" fill="#0c0a0d" stroke="#2a52be" stroke-width="10"/>
-
-        <path d="M566 548
-                 C624 548 666 516 692 470"
-              fill="none" stroke="#2a52be" stroke-width="10" stroke-linecap="round"/>
-
-        <path d="M676 470 L704 470 L692 496"
-              fill="none" stroke="#2a52be" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-
-        <circle cx="566" cy="456" r="9" fill="#f4f2ec"/>
-      </svg>
-
-      
-
-    </div>
-  </div>
-</div>
-<!--STAGE-->
+</div><!--STAGE-->
     <svg id="c06-link" viewBox="0 0 1080 1920" fill="none" style="position:absolute;left:0;top:0;width:1080px;height:1920px;z-index:12;opacity:0;pointer-events:none;" aria-hidden="true">
       <path id="c06-linkpath" d="M566 886 C566 1060 470 1330 310 1490" stroke="#2a52be" stroke-width="5" stroke-linecap="round" stroke-dasharray="750" stroke-dashoffset="750" opacity="0"/>
       <path id="c06-piptrail" d="M840 290 C 720 700, 420 1200, 310 1490" stroke="#2a52be" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 16" opacity="0"/>
@@ -872,6 +783,10 @@
           tl.fromTo(C + 'card-01"] #c01-rule', { width: 0 }, { width: 880, duration: 0.5, ease: "power2.out" }, 1.4);
           tl.fromTo(C + 'card-01"] #c01-tick', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, 1.3);
           tl.fromTo(C + 'card-01"] #c01-quote', { opacity: 0, filter: "blur(8px)" }, { opacity: 0.78, filter: "blur(0px)", duration: 0.6, ease: "power2.out" }, 1.65);
+          tl.fromTo(C + 'card-01"] #c06-card-canal', { opacity: 0, scale: 0.9, transformOrigin: '50% 44%' }, { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, 0.38);
+          tl.fromTo(C + 'card-01"] #c06-card-title-plate', { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.62);
+          tl.to(C + 'card-01"] #c01-word .c01w', { strokeDashoffset: 0, duration: 0.55, ease: "power2.inOut", stagger: 0.09 }, 0.85);
+          tl.fromTo(C + 'card-01"] #c06-card-detail', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 1.55);
           hostOut("card-01", 6.45, 0.35);
 
           // ── persistent concha mechanism: airflow, seal, rebound ──
@@ -929,7 +844,7 @@ tl.to("#canalFlow", { opacity: 0.6, duration: 0.5, ease: "power2.out" }, 7.0);
           // reopen: air releases, ring opens back
           tl.to("#source-audio", { volume: 0.9, duration: 0.08, ease: "power4.out" }, 12.9);
           tl.to("#conchaSealDot", { opacity: 0, scale: 1.6, duration: 0.4, ease: "power2.in" }, 15.4);
-          tl.to("#video-wrap", { clipPath: "circle(1400px at 540px 960px)", duration: 0.75, ease: "power3.out" }, 15.4);
+          tl.to("#video-wrap", { clipPath: "circle(560px at 540px 820px)", duration: 0.75, ease: "power3.out" }, 15.4);
           tl.to("#conchaRing", { strokeDasharray: "700 179", stroke: "#d94f9e", duration: 0.55, ease: "power3.out" }, 15.5);
           tl.to("#source-audio", { volume: 0.78, duration: 0.22, ease: "elastic.out(1,0.6)" }, 15.5);
           tl.to("#concha", { scale: 1.06, x: 0, y: 0, opacity: 0.72, rotation: 0, duration: 0.9, ease: "elastic.out(1,0.55)" }, 15.5);
@@ -1047,7 +962,7 @@ tl.fromTo(C + 'card-02"] #c02-panel', { y: -60 }, { y: 0, duration: 0.5, ease: "
           tl.to(C + 'card-06"] .panel', { backgroundColor: "rgba(12,10,13,0)", duration: 0.5, ease: "power2.inOut" }, 26.8);
           tl.set("#grandO-ring", { opacity: 1 }, 26.8);
           tl.to("#grandO-ring", { strokeDashoffset: 0, duration: 1.05, ease: "power3.inOut" }, 26.82);
-          tl.to("#video-wrap", { scale: os, duration: 1.05, ease: "power3.inOut" }, 26.8);
+          tl.set("#video-wrap", { scale: os }, 26.8);
           tl.set('#c06-piptrail', { opacity: 0.55, strokeDashoffset: 0 }, 24.95);
           tl.to('#c06-piptrail', { strokeDashoffset: -120, duration: 1.6, ease: "none" }, 24.95);
           tl.to('#c06-piptrail', { opacity: 0, duration: 0.5, ease: "power2.in" }, 26.3);
@@ -1084,6 +999,12 @@ tl.fromTo(C + 'card-02"] #c02-panel', { y: -60 }, { y: 0, duration: 0.5, ease: "
           tl.to(C + 'card-06"] #c06-stamp', { rotation: 0, scale: 1.025, duration: 0.22, ease: "power2.out" }, 24.32);
           tl.to(C + 'card-06"] #c06-stamp', { scale: 1, duration: 0.22, ease: "power2.inOut" }, 24.54);
 
+          // Final landing: airflow crosses the completed verdict, then the dual impact ring resolves.
+          tl.set('#c06-final-flow', { opacity: 1, strokeDashoffset: 920 }, 26.05);
+          tl.to('#c06-final-flow', { strokeDashoffset: 0, duration: 0.9, ease: 'power2.inOut' }, 26.05);
+          tl.set('#c06-impact-a, #c06-impact-b', { opacity: 0 }, 26.92);
+          tl.to('#source-audio', { volume: 1, duration: 0.08, ease: 'power4.out' }, 26.92);
+          tl.to('#c06-final-flow', { opacity: 0.5, duration: 0.28, ease: 'power2.out' }, 27.35);
           // Clean landing: suppress secondary mechanisms and hold the primary verdict for a readable beat.
           tl.to('#c06-link, #c06-draw, #grandO-ring', { opacity: 0.08, duration: 0.35, ease: 'power2.inOut' }, 26.65);
           tl.to(C + 'card-06"] .final-lockup-secondary', { opacity: 0.12, duration: 0.3, ease: 'power2.out' }, 26.7);

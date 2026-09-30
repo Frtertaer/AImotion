@@ -60,6 +60,10 @@ const WORST_CARD = (jout) => { const m = jout.match(/REWRITE_CARD:\s*(card-\d+)/
 // one of these ids is rolled back exactly like a lint failure.
 const STAGE_IDS = ['c06-draw','c06-glyphs','c06-olet','c06-link','c06-linkpath','c06-piptrail','c06-pulse','c06-pulse2','c06-wordflow','c06-return','c02-word','c04-word','c05-word','grandO-ring'];
 const stageIdsIntact = (html) => STAGE_IDS.filter(id => !(html.match(new RegExp(`id="${id}"`, 'g')) || []).length === 1);
+// the host's data-card-id must match its slot — an author rewrite that labels
+// host-card-0N as card-0M silently detaches every tween for that card.
+const fixCardIds = (html) => html.replace(/id="host-card-0(\d)"([^>]*?)data-card-id="card-0\d"/g,
+  (m, n, rest) => `id="host-card-0${n}"${rest}data-card-id="card-0${n}"`);
 const CARDS = ['card-01', 'card-02', 'card-03', 'card-04', 'card-05', 'card-06'];
 const rewritten = new Set();
 
@@ -131,7 +135,7 @@ while (round < MAX_ROUNDS && verdict !== 'surpasses') {
       const nm = aout.match(/```html\s*([\s\S]*?)```/);
       if (nm) {
         copyFileSync(INDEX, join(conv, `index_r${round}.bak.html`));
-        writeFileSync(INDEX, src0.replace(cb.re, nm[1].trim()));
+        writeFileSync(INDEX, fixCardIds(src0.replace(cb.re, nm[1].trim())));
         const wsrc = readFileSync(INDEX, 'utf8');
         const missing = stageIdsIntact(wsrc);
         const chk0 = missing.length ? { out: 'stage ids lost: ' + missing.join(',') } : run('npx', ['-y', HF, 'check', 'public'], { timeout: 300000 });
@@ -165,7 +169,7 @@ while (round < MAX_ROUNDS && verdict !== 'surpasses') {
     if (n === 1) { src = src.replace(p.find, p.replace); applied++; }
     else failed.push(`(${n} matches) ${String(p.find).slice(0, 80)}`);
   }
-  writeFileSync(INDEX, src);
+  writeFileSync(INDEX, fixCardIds(src));
   console.log(`patches: ${applied} applied, ${failed.length} failed`);
   if (applied === 0) { copyFileSync(join(conv, `index_r${round}.bak.html`), INDEX); history[history.length - 1].errors = 'all patches missed: ' + failed.join('; ').slice(0, 300); continue; }
   // lint gate + stage-machinery guard
