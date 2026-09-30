@@ -1,23 +1,167 @@
 [
-{"t":0.65,"type":"pop","gain":0.35},
-{"t":1.3,"type":"tick","gain":0.2},
-{"t":7.15,"type":"whoosh","gain":0.3},
-{"t":7.8,"type":"blip","gain":0.25},
-{"t":8.5,"type":"ding","gain":0.3},
-{"t":12.4,"type":"zap","gain":0.4},
-{"t":13.3,"type":"zap","gain":0.35},
-{"t":15.5,"type":"whoosh","gain":0.45},
-{"t":16.05,"type":"blip","gain":0.3},
-{"t":17.4,"type":"thump","gain":0.35},
-{"t":17.8,"type":"thump","gain":0.3},
-{"t":18.2,"type":"thump","gain":0.3},
-{"t":20.6,"type":"riser","gain":0.3},
-{"t":21.7,"type":"land","gain":0.35},
-{"t":22.9,"type":"riser","gain":0.45},
-{"t":23.7,"type":"land","gain":0.5},
-{"t":25.2,"type":"tick","gain":0.3},
-{"t":25.5,"type":"tick","gain":0.3},
-{"t":25.8,"type":"tick","gain":0.3},
-{"t":26.9,"type":"ding","gain":0.4},
-{"t":28.5,"type":"click","gain":0.2}
+ {
+  "t": 0.65,
+  "type": "pop",
+  "gain": 0.35
+ },
+ {
+  "t": 1.3,
+  "type": "tick",
+  "gain": 0.2
+ },
+ {
+  "t": 2.0,
+  "type": "whoosh",
+  "gain": 0.22
+ },
+ {
+  "t": 6.55,
+  "type": "thump",
+  "gain": 0.34
+ },
+ {
+  "t": 6.88,
+  "type": "whoosh",
+  "gain": 0.28
+ },
+ {
+  "t": 7.15,
+  "type": "whoosh",
+  "gain": 0.3
+ },
+ {
+  "t": 7.8,
+  "type": "blip",
+  "gain": 0.25
+ },
+ {
+  "t": 8.5,
+  "type": "ding",
+  "gain": 0.3
+ },
+ {
+  "t": 8.5,
+  "type": "whoosh",
+  "gain": 0.22
+ },
+ {
+  "t": 12.4,
+  "type": "zap",
+  "gain": 0.4
+ },
+ {
+  "t": 13.0,
+  "type": "zap",
+  "gain": 0.25
+ },
+ {
+  "t": 13.3,
+  "type": "zap",
+  "gain": 0.35
+ },
+ {
+  "t": 14.45,
+  "type": "zap",
+  "gain": 0.35
+ },
+ {
+  "t": 15.5,
+  "type": "whoosh",
+  "gain": 0.45
+ },
+ {
+  "t": 16.0,
+  "type": "whoosh",
+  "gain": 0.22
+ },
+ {
+  "t": 16.05,
+  "type": "blip",
+  "gain": 0.3
+ },
+ {
+  "t": 17.4,
+  "type": "thump",
+  "gain": 0.35
+ },
+ {
+  "t": 17.8,
+  "type": "thump",
+  "gain": 0.3
+ },
+ {
+  "t": 18.2,
+  "type": "thump",
+  "gain": 0.3
+ },
+ {
+  "t": 20.28,
+  "type": "thump",
+  "gain": 0.36
+ },
+ {
+  "t": 20.6,
+  "type": "riser",
+  "gain": 0.3
+ },
+ {
+  "t": 20.62,
+  "type": "whoosh",
+  "gain": 0.3
+ },
+ {
+  "t": 21.7,
+  "type": "land",
+  "gain": 0.35
+ },
+ {
+  "t": 22.9,
+  "type": "riser",
+  "gain": 0.45
+ },
+ {
+  "t": 23.15,
+  "type": "tick",
+  "gain": 0.3
+ },
+ {
+  "t": 23.7,
+  "type": "land",
+  "gain": 0.5
+ },
+ {
+  "t": 25.05,
+  "type": "riser",
+  "gain": 0.3
+ },
+ {
+  "t": 25.2,
+  "type": "tick",
+  "gain": 0.3
+ },
+ {
+  "t": 25.5,
+  "type": "tick",
+  "gain": 0.3
+ },
+ {
+  "t": 25.8,
+  "type": "tick",
+  "gain": 0.3
+ },
+ {
+  "t": 26.2,
+  "type": "land",
+  "gain": 0.42
+ },
+ {
+  "t": 26.9,
+  "type": "ding",
+  "gain": 0.4
+ },
+ {
+  "t": 28.5,
+  "type": "click",
+  "gain": 0.2
+ }
 ]
