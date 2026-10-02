@@ -157,3 +157,28 @@ export const SHOTMAP = {
   114: { g: 'village', sky: 'night', cam: { mode: 'push', amt: 0.08 }, fx: [{ torch: [0.65, 0.55, 1] }], gOpts: { huts: 1 }, cast: [T.mh({ at: [[0, [0.5, 0.68]]], act: [[0, 'write']], s: 170 })] },
   115: { g: 'village', sky: 'dawn', cam: { mode: 'tilt', amt: -30 }, fx: ['crows'], gOpts: { huts: 2 }, cast: [] },
 };
+
+// painted background plates (films/vagabond/art/) — [file, horizon frac]
+const ART = {
+  0: ['field_grey', 0.58], 4: ['field_grey', 0.58], 8: ['field_grey', 0.6], 14: ['field_grey', 0.58], 18: ['field_grey', 0.6], 58: ['field_grey', 0.58],
+  3: ['field_rain', 0.6], 16: ['field_rain', 0.6], 53: ['field_rain', 0.6],
+  9: ['ridge_moon', 0.72], 12: ['ridge_moon', 0.72], 59: ['ridge_moon', 0.72], 64: ['ridge_moon', 0.7], 75: ['ridge_moon', 0.7],
+  51: ['village_dusk', 0.6], 54: ['village_dusk', 0.6], 55: ['village_dusk', 0.6], 56: ['village_dusk', 0.6], 57: ['village_dusk', 0.6], 67: ['village_dusk', 0.6], 68: ['village_dusk', 0.6], 69: ['village_dusk', 0.6], 70: ['village_dusk', 0.6],
+  5: ['ridge_dawn', 0.68], 11: ['ridge_dawn', 0.68], 52: ['ridge_dawn', 0.68], 71: ['ridge_dawn', 0.68], 73: ['ridge_dawn', 0.68], 76: ['ridge_dawn', 0.68], 77: ['ridge_dawn', 0.68], 80: ['ridge_dawn', 0.68], 104: ['ridge_dawn', 0.68], 108: ['ridge_dawn', 0.68], 110: ['ridge_dawn', 0.68],
+  65: ['road_night', 0.55], 81: ['road_night', 0.55], 82: ['road_night', 0.55],
+  85: ['village_fire', 0.72], 86: ['village_fire', 0.72], 87: ['village_fire', 0.72], 89: ['village_fire', 0.72], 90: ['village_fire', 0.72], 91: ['village_fire', 0.72], 92: ['village_fire', 0.72], 93: ['village_fire', 0.72], 94: ['village_fire', 0.72], 95: ['village_fire', 0.72], 96: ['village_fire', 0.72], 97: ['village_fire', 0.72], 98: ['village_fire', 0.72], 99: ['village_fire', 0.72], 100: ['village_fire', 0.72], 101: ['village_fire', 0.72], 102: ['village_fire', 0.72], 105: ['village_fire', 0.72], 106: ['village_fire', 0.72], 107: ['village_fire', 0.72],
+};
+for (const [k, a] of Object.entries(ART)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }
+
+const ART2 = {
+  19: ['trench', 0.78],
+  13: ['village_night', 0.62], 78: ['village_night', 0.62], 84: ['village_night', 0.62], 111: ['village_night', 0.62], 114: ['village_night', 0.62],
+  28: ['field_moon', 0.55], 29: ['field_moon', 0.55], 39: ['field_moon', 0.55], 45: ['field_moon', 0.55], 46: ['field_moon', 0.55], 47: ['field_moon', 0.55], 48: ['field_moon', 0.55], 62: ['field_moon', 0.55], 79: ['field_moon', 0.55],
+  60: ['field_moon', 0.55], 61: ['field_moon', 0.55], 63: ['field_moon', 0.55], 66: ['field_moon', 0.55],
+  71: ['ridge_moon', 0.72], 72: ['ridge_moon', 0.72], 83: ['ridge_moon', 0.72], 112: ['road_night', 0.55],
+  88: ['village_fire', 0.72], 104: ['village_fire', 0.72],
+  33: ['village_dusk', 0.6], 49: ['village_dusk', 0.6], 50: ['village_dusk', 0.6], 108: ['village_dusk', 0.6], 109: ['village_dusk', 0.6], 115: ['village_dusk', 0.6],
+  1: ['field_grey', 0.58], 2: ['field_grey', 0.58], 7: ['field_grey', 0.58], 21: ['field_grey', 0.58], 22: ['field_grey', 0.58], 23: ['field_grey', 0.58], 25: ['field_grey', 0.58], 26: ['field_grey', 0.58], 27: ['field_grey', 0.58], 32: ['field_grey', 0.58], 34: ['field_grey', 0.58], 35: ['field_grey', 0.58], 36: ['field_grey', 0.58], 37: ['field_grey', 0.58], 38: ['field_grey', 0.58], 42: ['field_grey', 0.58], 43: ['field_grey', 0.58], 44: ['field_grey', 0.58],
+  113: ['ridge_dawn', 0.68],
+};
+for (const [k, a] of Object.entries(ART2)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }

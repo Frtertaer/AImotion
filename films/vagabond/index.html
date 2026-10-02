@@ -247,6 +247,15 @@ function filmic() {
   g.restore();
 }
 
+// preload painted plates referenced by the shotmap (films/vagabond/art/<name>)
+window.__ART = {};
+await Promise.all(Object.values(SHOTMAP).map(s => s.art).filter(Boolean).map(async n => {
+  const im = new Image();
+  im.src = './art/' + n;
+  try { await im.decode(); } catch { /* missing plate -> procedural fallback */ }
+  if (im.naturalWidth) window.__ART[n] = im;
+}));
+
 window.FILM = { w: W, h: H, dur: DUR };
 window.seek = seek;
 window.READY = true;
