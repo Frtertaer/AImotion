@@ -173,9 +173,30 @@ export function caption(g, W, H, text, lt, dur, o = {}) {
   const a = clamp((lt - (o.tIn ?? dur * 0.15)) / 0.4) * clamp(((o.tOut ?? dur - 0.3) - lt) / 0.4);
   if (a <= 0) return;
   g.save(); g.globalAlpha = a;
-  g.font = `500 ${o.size ?? 34}px "FreeSerif", Georgia, serif`;
-  g.textAlign = 'center'; g.fillStyle = 'rgba(233,226,207,0.92)';
-  g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 8;
-  g.fillText(text, W / 2, H * (o.y ?? 0.86));
+  const size = o.size ?? 34, y = H * (o.y ?? 0.86);
+  g.font = `500 ${size}px "FreeSerif", Georgia, serif`;
+  g.textAlign = 'center';
+  if (o.manga) { // manga speech card: ink panel w/ torn brush border + tail
+    const tw = g.measureText(text).width, pw = tw + size * 2.2, ph = size * 2.1;
+    const x0 = W / 2 - pw / 2, y0 = y - ph * 0.62;
+    g.fillStyle = 'rgba(20,17,13,0.88)';
+    g.beginPath();
+    const R = rng(7);
+    g.moveTo(x0 + R() * 8, y0 + 2);
+    g.lineTo(x0 + pw - R() * 10, y0 + R() * 4);
+    g.lineTo(x0 + pw - 2, y0 + ph - R() * 6);
+    g.lineTo(x0 + R() * 12, y0 + ph - 2);
+    g.closePath(); g.fill();
+    // rough brush outline
+    g.strokeStyle = 'rgba(233,226,207,0.85)'; g.lineWidth = 2;
+    g.strokeRect(x0 - 1, y0 - 1, pw + 2, ph + 2);
+    I.line(g, x0 + pw * 0.4, y0 - 2, x0 + pw * 0.42, y0 - size * 0.9, 4, 1.5, 'rgba(233,226,207,0.7)'); // tail up-left
+    g.fillStyle = 'rgba(233,226,207,0.95)';
+    g.fillText(text, W / 2, y0 + ph * 0.62);
+  } else {
+    g.fillStyle = 'rgba(233,226,207,0.92)';
+    g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 8;
+    g.fillText(text, W / 2, y);
+  }
   g.restore();
 }

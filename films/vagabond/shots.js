@@ -46,7 +46,7 @@ export function shot(g, W, H, lt, dur, S) {
   if (S.macro) {
     drawMacro(g, W, H, lt, dur, S); g.restore(); frameEdges(g, W, H);
     if (S.splatAt && lt > S.splatAt[0]) I.splat(g, S.splatAt[1] * W, S.splatAt[2] * H, S.splatAt[3] ?? 160, S.splatAt[4] ?? 9, clamp((lt - S.splatAt[0]) / 0.3), S.splatAt[5] === 'blood' ? I.BLOOD : I.INK);
-    if (S.cap) caption(g, W, H, S.cap, lt, dur, S.capO);
+    if (S.cap) caption(g, W, H, S.cap, lt, dur, { manga: 1, ...(S.capO || {}) });
     return;
   }
 
@@ -81,7 +81,7 @@ export function shot(g, W, H, lt, dur, S) {
   g.restore();
   if (S.splatAt && lt > S.splatAt[0]) I.splat(g, S.splatAt[1] * W, S.splatAt[2] * H, S.splatAt[3] ?? 160, S.splatAt[4] ?? 9, clamp((lt - S.splatAt[0]) / 0.3), S.splatAt[5] === 'blood' ? I.BLOOD : I.INK);
   frameEdges(g, W, H);
-  if (S.cap) caption(g, W, H, S.cap, lt, dur, S.capO);
+  if (S.cap) caption(g, W, H, S.cap, lt, dur, { manga: 1, ...(S.capO || {}) });
   // vignette per shot
   const vg = g.createRadialGradient(W / 2, H / 2, H * 0.5, W / 2, H / 2, H * 1.0);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(10,9,7,${S.vig ?? 0.3})`);

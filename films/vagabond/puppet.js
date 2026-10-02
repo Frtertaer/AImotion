@@ -311,7 +311,7 @@ export function fig(g, x, y, o) {
   const hr = s * 0.078;
   blob(g, head.x, head.y, hr, (o.seed || 3) * 17 + 5, ink);
   // face marks — only on figures big enough to read: pale eye slit + ink brow
-  if (s >= 130 && o.pose !== 'lie' && o.pose !== 'flatDown' && o.pose !== 'fall') {
+  if (s >= 118 && o.pose !== 'lie' && o.pose !== 'flatDown' && o.pose !== 'fall') {
     const ex = head.x + f * hr * 0.42, ey = head.y - hr * 0.08;
     // brow slash above the eye — anger set varies by pose
     const angry = ['gripLow', 'swing', 'lunge', 'alert', 'point', 'howl'].includes(o.pose);
