@@ -1,0 +1,73 @@
+<div class="card" data-card-id="card-01">
+  <style>
+    .card[data-card-id="card-01"] .root {
+      position: relative;
+      width: 100%; height: 100%;
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+    }
+    .card[data-card-id="card-01"] .band {
+      position: absolute;
+      left: 44px; right: 44px; top: 1330px;
+      background: var(--paper);
+      border-radius: 28px;
+      padding: 40px 44px 44px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+    .card[data-card-id="card-01"] .kick {
+      display: inline-block;
+      font-size: 21px; font-weight: 600;
+      letter-spacing: .14em;
+      color: var(--paper);
+      background: var(--ink);
+      border-radius: 999px;
+      padding: 10px 22px;
+      margin-bottom: 26px;
+    }
+    .card[data-card-id="card-01"] .title {
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 800;
+      font-size: 92px;
+      line-height: .98;
+      color: var(--ink);
+      letter-spacing: -.01em;
+    }
+    .card[data-card-id="card-01"] .title .accent { color: var(--accent-0); }
+    .card[data-card-id="card-01"] .rule {
+      height: 8px; width: 0;
+      background: var(--accent-0);
+      border-radius: 4px;
+      margin-top: 26px;
+    }
+    .card[data-card-id="card-01"] .quote {
+      font-family: 'Caveat', cursive;
+      font-weight: 700;
+      font-size: 44px;
+      color: var(--ink);
+      opacity: .78;
+      margin-top: 18px;
+      transform: rotate(-1.6deg);
+    }
+    .card[data-card-id="card-01"] .tick {
+      position: absolute;
+      right: 44px; top: -34px;
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: var(--accent-0);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Unbounded', sans-serif;
+      font-weight: 800; font-size: 40px;
+      color: var(--paper);
+      box-shadow: 0 10px 30px rgba(42,82,190,.5);
+    }
+  </style>
+  <div class="root">
+    <div class="band" id="c01-band">
+      <div class="tick" id="c01-tick" data-anim="scale-pop" data-anim-at="1.0" data-anim-duration="0.5">ok</div>
+      <div class="kick" id="c01-kick" data-anim="fade-in" data-anim-at="0.15" data-anim-duration="0.4">ОБЗОР · AIRPODS · ПРЯМОЙ ЭФИР</div>
+      <h1 class="title" id="c01-title" data-anim="kinetic-chars" data-anim-at="0.35" data-anim-duration="0.55" data-anim-stagger="0.028" data-anim-pattern="pop"><span class="char">Н</span><span class="char">О</span><span class="char">Р</span><span class="char">М</span><span class="char">А</span><span class="char">Л</span><span class="char">Ь</span><span class="char">Н</span><span class="char">Ы</span><span class="char">Й</span><br/><span class="accent"><span class="char">З</span><span class="char">В</span><span class="char">У</span><span class="char">К</span></span></h1>
+      <div class="rule" id="c01-rule" data-anim="grow-x" data-anim-at="1.1" data-anim-duration="0.5" data-anim-target-w="880"></div>
+      <div class="quote" id="c01-quote" data-anim="blur-in" data-anim-at="1.35" data-anim-duration="0.6">«не прям заебись — нормальный»</div>
+    </div>
+  </div>
+</div>

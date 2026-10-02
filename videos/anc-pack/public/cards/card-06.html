@@ -1,0 +1,62 @@
+<div class="card" data-card-id="card-06">
+  <style>
+    .card[data-card-id="card-06"] .root {
+      position: relative; width: 100%; height: 100%;
+      background: var(--paper); font-family: 'Inter', sans-serif;
+    }
+    .card[data-card-id="card-06"] .kick {
+      position: absolute; left: 56px; top: 520px;
+      font-size: 22px; font-weight: 600; letter-spacing: .16em;
+      color: var(--accent-1);
+    }
+    .card[data-card-id="card-06"] .title {
+      position: absolute; left: 52px; top: 590px;
+      font-family: 'Unbounded', sans-serif; font-weight: 800;
+      font-size: 112px; line-height: .98; color: var(--ink);
+    }
+    .card[data-card-id="card-06"] .title .accent { color: var(--accent-1); }
+    .card[data-card-id="card-06"] .ring {
+      position: absolute; left: 660px; top: 560px;
+      width: 360px; height: 360px;
+    }
+    .card[data-card-id="card-06"] .rows {
+      position: absolute; left: 56px; top: 1060px; right: 56px;
+    }
+    .card[data-card-id="card-06"] .row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 20px 0; border-bottom: 3px solid var(--ink);
+      font-size: 34px; font-weight: 600; color: var(--ink);
+      opacity: 0;
+    }
+    .card[data-card-id="card-06"] .row .v {
+      font-family: 'Unbounded', sans-serif; font-weight: 800;
+      font-size: 30px;
+    }
+    .card[data-card-id="card-06"] .row .ok { color: var(--accent-0); }
+    .card[data-card-id="card-06"] .row .no { color: var(--accent-2); }
+    .card[data-card-id="card-06"] .stamp {
+      position: absolute; left: 56px; bottom: 120px;
+      font-family: 'Unbounded', sans-serif; font-weight: 800;
+      font-size: 64px; color: var(--paper);
+      background: var(--ink); border-radius: 20px;
+      padding: 26px 36px;
+      transform: rotate(-2.4deg);
+      opacity: 0;
+    }
+  </style>
+  <div class="root">
+    <div class="kick" id="c06-kick" data-anim="fade-in" data-anim-at="0.5" data-anim-duration="0.4">АНАТОМИЯ · РАЗБОР</div>
+    <h1 class="title" id="c06-title" data-anim="mask-reveal" data-anim-at="0.7" data-anim-duration="0.7" data-anim-direction="left">РАКОВИНА<br/><span class="accent">ДЕРЖИТ</span></h1>
+    <svg class="ring" viewBox="0 0 360 360" fill="none">
+      <circle id="c06-ring" cx="180" cy="180" r="150" stroke="var(--accent-1)" stroke-width="10" data-anim="draw-path" data-anim-at="0.7" data-anim-duration="0.9"/>
+      <circle id="c06-bud" cx="180" cy="180" r="46" fill="var(--ink)" data-anim="scale-pop" data-anim-at="1.5" data-anim-duration="0.5"/>
+      <circle cx="180" cy="180" r="46" fill="none" stroke="var(--accent-1)" stroke-width="4" opacity=".6" data-anim="fade-in" data-anim-at="1.5" data-anim-duration="0.5"/>
+    </svg>
+    <div class="rows">
+      <div class="row" id="c06-r1" data-anim="fade-in" data-anim-at="1.9" data-anim-duration="0.4"><span>звук</span><span class="v ok">НОРМАЛЬНЫЙ</span></div>
+      <div class="row" id="c06-r2" data-anim="fade-in" data-anim-at="2.2" data-anim-duration="0.4"><span>тип</span><span class="v ok">ОТКРЫТЫЙ</span></div>
+      <div class="row" id="c06-r3" data-anim="fade-in" data-anim-at="2.5" data-anim-duration="0.4"><span>вакуум</span><span class="v no">НЕНАВИЖУ</span></div>
+    </div>
+    <div class="stamp" id="c06-stamp" data-anim="scale-pop" data-anim-at="3.1" data-anim-duration="0.55">ОТКРЫТЫЙ ТИП</div>
+  </div>
+</div>

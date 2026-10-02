@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { resolve, join, extname, sep } from 'node:path';
+const root=resolve('/home/ubuntu/repos/AImotion');
+const T={'.html':'text/html','.js':'text/javascript','.ttf':'font/ttf'};
+const server=createServer(async(req,res)=>{const p=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://x').pathname));try{res.writeHead(200,{'content-type':T[extname(p)]||'application/octet-stream'}).end(await readFile(p))}catch{res.writeHead(404).end()}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const b=await chromium.launch();const pg=await b.newPage();
+await pg.goto(`http://127.0.0.1:${server.address().port}/films/vagabond/test.html`);
+await pg.waitForFunction(()=>window.READY===true,null,{timeout:10000});
+await pg.screenshot({path:'/tmp/pose_sheet.png'});
+await b.close();server.close();console.log('ok');
