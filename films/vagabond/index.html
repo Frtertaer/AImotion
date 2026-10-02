@@ -55,14 +55,14 @@ function drawTitle(t) {
 
 // ---------- OP (91.5s) ----------
 const OP_BEATS = [
-  { a: 0, b: 9, f: opMoonRise },
-  { a: 9, b: 20, f: opWalk },
-  { a: 20, b: 30, f: opSword },
-  { a: 30, b: 33, f: opFlash },
-  { a: 33, b: 36, f: opFlash2 },
-  { a: 36, b: 52, f: opBoysMoon },
-  { a: 52, b: 66, f: opDuel },
-  { a: 66, b: 91.5, f: opTitle },
+  { a: 0, b: 7, f: opMoonRise },
+  { a: 7, b: 16, f: opWalk },
+  { a: 16, b: 26, f: opSword },
+  { a: 26, b: 29, f: opFlash },
+  { a: 29, b: 32, f: opFlash2 },
+  { a: 32, b: 44, f: opBoysMoon },
+  { a: 44, b: 62, f: opDuel },
+  { a: 62, b: 91.5, f: opTitle },
 ];
 function opMoonRise(t, lt) {
   sky(g, W, H, 'night', t, W * 0.5, 90 + lt * 4);
@@ -156,7 +156,7 @@ function opTitle(t, lt) {
     g.restore();
     I.line(g, W * 0.09, H * 0.5, W * (0.09 + 0.45 * tq), H * 0.5, 6, 3, I.BLOOD, 0.9);
   }
-  const fade = clamp((lt - 89.5) / 2);
+  const fade = clamp((lt - 27.5) / 2);
   if (fade > 0) { g.fillStyle = `rgba(10,9,7,${fade})`; g.fillRect(0, 0, W, H); }
 }
 

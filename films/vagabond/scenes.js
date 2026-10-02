@@ -11,6 +11,7 @@ const SKIES = {
   dusk:   { top: '#4a4238', low: '#8a7a5e', sun: null },
   grey:   { top: '#57534a', low: '#948a72', sun: null },
   night:  { top: '#14130f', low: '#2e2b23', moon: true },
+  moonblue:{ top: '#0e1420', low: '#2c3c4e', moon: true },
   dawn:   { top: '#3a352a', low: '#c9a060', sun: 'low' },
   fireglow:{ top: '#1c130c', low: '#8a4a18', embers: true },
   paper:  { top: PAPER, low: PAPER, sun: null },

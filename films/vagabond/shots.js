@@ -8,7 +8,7 @@ import { fig } from './puppet.js';
 import { sky, grounds, frameEdges, caption } from './scenes.js';
 
 const CAST = {
-  takezo:    { hair: 'topknot', cloak: true,  s: 1.0 },
+  takezo:    { hair: 'topknot', cloak: true,  s: 1.0, band: '#a8322a' },
   matahachi: { hair: 'band',    cloak: false, s: 0.97 },
   soldier:   { hair: 'helmet',  cloak: false, s: 1.05, prop: 'spear', propAngle: 1.35 },
   tsujikaze: { hair: 'none',    cloak: true,  s: 1.45 },
@@ -40,10 +40,15 @@ export function shot(g, W, H, lt, dur, S) {
   const c = camSpec(S.cam, lt, dur);
   g.save(); applyCam(g, W, H, c);
 
-  const y0 = S.g === 'paper' || S.g === 'black' ? grounds[S.g](g, W, H) : (sky(g, W, H, S.sky, lt, S.moonX, S.moonR), midSilhouette(g, W, H, lt, S), grounds[S.g](g, W, H, lt, S.gOpts || {}));
+  const y0 = S.g === 'paper' || S.g === 'black' ? grounds[S.g](g, W, H) : (sky(g, W, H, S.sky, lt, S.moonX == null ? undefined : (S.moonX < 4 ? S.moonX * W : S.moonX), S.moonR), midSilhouette(g, W, H, lt, S), grounds[S.g](g, W, H, lt, S.gOpts || {}));
 
   // special macro compositions skip the cast loop
-  if (S.macro) { drawMacro(g, W, H, lt, dur, S); g.restore(); frameEdges(g, W, H); if (S.cap) caption(g, W, H, S.cap, lt, dur, S.capO); return; }
+  if (S.macro) {
+    drawMacro(g, W, H, lt, dur, S); g.restore(); frameEdges(g, W, H);
+    if (S.splatAt && lt > S.splatAt[0]) I.splat(g, S.splatAt[1] * W, S.splatAt[2] * H, S.splatAt[3] ?? 160, S.splatAt[4] ?? 9, clamp((lt - S.splatAt[0]) / 0.3), S.splatAt[5] === 'blood' ? I.BLOOD : I.INK);
+    if (S.cap) caption(g, W, H, S.cap, lt, dur, S.capO);
+    return;
+  }
 
   const gY = (fy) => y0 + fy * (H - y0);
   // back-to-front: sort cast by fy (far first)
@@ -57,6 +62,7 @@ export function shot(g, W, H, lt, dur, S) {
       pose: po.pose, ph: po.ph, s, facing: m.facing ?? 1,
       hair: m.hair || ch.hair, cloak: m.cloak ?? ch.cloak,
       prop: m.prop ?? ch.prop, propAngle: m.propAngle ?? ch.propAngle, propLen: m.propLen,
+      band: m.band ?? ch.band,
       alpha: m.alpha, seed: m.seed, ...po.opts,
     });
   }
@@ -184,10 +190,13 @@ function drawMacro(g, W, H, lt, dur, S) {
     I.paper(g, W, H, '#33302a', 0.25, 0.05);
     const px = W * 0.14, py = H * 0.7;
     const reveal = spring(lt - 0.3, 260, 22);
-    g.save(); g.translate(px, py); g.rotate(-0.42);
+    g.save(); g.translate(px, py); g.rotate(-0.42 + Math.sin(lt * 0.5) * 0.008);
     const len = W * 0.72;
     I.line(g, 0, 0, len * reveal, 0, 30, 8, '#20232a');
     I.line(g, len * 0.2, -6, len * reveal * 0.98, -4, 5, 2, '#8f939e', 0.8); // edge light
+    // travelling glint along the edge — the blade breathes
+    const gl = ((lt * 0.5) % 1.4) * len;
+    if (reveal > 0.9) { I.line(g, gl - 90, -6.5, gl, -5.5, 8, 3, '#e8e4d2', 0.85); I.blob(g, gl, -5, 7, 3, '#f4efe0', 0.9); }
     I.blob(g, -14, 0, 26, 33, '#1a1611'); // tsuba
     I.line(g, -120, 0, -14, 0, 26, 22, '#2a2118'); // tsuka
     g.restore();

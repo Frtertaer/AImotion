@@ -1,7 +1,7 @@
 // Articulated ink figure. A figure is a ground anchor + a pose dict; every pose
 // is a pure function of phase (walk cycle position, attack progress, breath).
 import { clamp, lerp } from '../../lib/motion.js';
-import { stroke, line, blob, INK, PAPER } from './ink.js';
+import { stroke, line, blob, INK, PAPER, BLOOD } from './ink.js';
 
 // ---- skeleton -----------------------------------------------------------
 // Figure space: origin at ground under hips, x right, y UP (positive).
@@ -310,6 +310,16 @@ export function fig(g, x, y, o) {
   // head
   const hr = s * 0.078;
   blob(g, head.x, head.y, hr, (o.seed || 3) * 17 + 5, ink);
+  // face marks — only on figures big enough to read: pale eye slit + ink brow
+  if (s >= 130 && o.pose !== 'lie' && o.pose !== 'flatDown' && o.pose !== 'fall') {
+    const ex = head.x + f * hr * 0.42, ey = head.y - hr * 0.08;
+    // brow slash above the eye — anger set varies by pose
+    const angry = ['gripLow', 'swing', 'lunge', 'alert', 'point', 'howl'].includes(o.pose);
+    line(g, ex - f * hr * 0.5, ey - hr * (angry ? 0.55 : 0.72), ex + f * hr * 0.55, ey - hr * (angry ? 0.3 : 0.62), s * 0.014, s * 0.008, ink, 0.95);
+    // eye slit — papercut in the ink head
+    line(g, ex - f * hr * 0.3, ey, ex + f * hr * 0.45, ey - hr * 0.05, s * 0.011, s * 0.007, PAPER, 0.9);
+    blob(g, ex + f * hr * 0.28, ey - hr * 0.02, hr * 0.12, 11, ink); // pupil bite back
+  }
   // neck dab
   line(g, neck.x, neck.y, head.x, head.y + hr * 0.6, s * 0.05, s * 0.04, ink);
   // hair variants
@@ -325,6 +335,14 @@ export function fig(g, x, y, o) {
     line(g, head.x - f * hr * 1.6, head.y - hr * 0.1, head.x + f * hr * 1.6, head.y - hr * 0.25, s * 0.03, s * 0.03, ink); // jingasa brim
   } else if (o.hair === 'woman') {
     stroke(g, head.x, head.y - hr * 0.5, head.x - f * hr * 0.9, head.y + hr * 0.6, head.x - f * hr * 1.3, head.y + hr * 1.8, s * 0.045, s * 0.01, ink, 0.95);
+  }
+  // identity headband — colored stripe across the brow + two fluttering tails
+  if (o.band) {
+    const bc = o.band === true ? BLOOD : o.band;
+    const fl = Math.sin(ph * Math.PI * 2 * 0.8 + (o.seed || 0) * 1.7) * s * 0.02;
+    line(g, head.x - f * hr * 0.95, head.y - hr * 0.5, head.x + f * hr * 0.95, head.y - hr * 0.62, s * 0.022, s * 0.022, bc, 0.95);
+    stroke(g, head.x - f * hr * 0.9, head.y - hr * 0.6, head.x - f * hr * 1.5, head.y - hr * 0.75 + fl, head.x - f * hr * 2.1, head.y - hr * 0.5 + fl * 2, s * 0.013, s * 0.003, bc, 0.85);
+    stroke(g, head.x - f * hr * 0.9, head.y - hr * 0.6, head.x - f * hr * 1.3, head.y - hr * 1.05 + fl * 0.6, head.x - f * hr * 1.7, head.y - hr * 1.35 + fl, s * 0.01, s * 0.002, bc, 0.7);
   }
   // near limbs
   stroke(g, hip.x, hip.y, knR.x, knR.y, ftR.x, ftR.y, w(0.09), w(0.038), ink);
