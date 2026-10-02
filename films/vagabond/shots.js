@@ -80,6 +80,7 @@ export function shot(g, W, H, lt, dur, S) {
   }
   g.restore();
   if (S.splatAt && lt > S.splatAt[0]) I.splat(g, S.splatAt[1] * W, S.splatAt[2] * H, S.splatAt[3] ?? 160, S.splatAt[4] ?? 9, clamp((lt - S.splatAt[0]) / 0.3), S.splatAt[5] === 'blood' ? I.BLOOD : I.INK);
+  if (S.clashAt) for (const c of S.clashAt) { const w = lt - c[0]; if (w > 0 && w < 0.4) clashBurst(g, W, H, c[1] * W, c[2] * H, w / 0.4, (c[3] ?? 5) + Math.floor(c[0])); }
   frameEdges(g, W, H);
   if (S.cap) caption(g, W, H, S.cap, lt, dur, { manga: 1, ...(S.capO || {}) });
   // vignette per shot
@@ -147,6 +148,26 @@ function windStreaks(g, W, H, t) {
     const y = R() * H, x = (R() * W + t * (260 + R() * 200)) % (W + 300) - 150;
     g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 60, y - 8, x + 130 + R() * 80, y + 4); g.stroke();
   }
+  g.restore();
+}
+
+// converging ink/paper speed lines at an impact point — 0.4s window
+function clashBurst(g, W, H, x, y, p, seed) {
+  const R = rng(seed * 977 + 3);
+  const k = p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65;
+  g.save();
+  for (let i = 0; i < 26; i++) {
+    const a = R() * Math.PI * 2;
+    const r0 = (1 - p * 0.65) * (W * 0.26 + R() * W * 0.22);
+    const r1 = r0 * (0.1 + R() * 0.3);
+    g.strokeStyle = i % 3 ? `rgba(233,226,207,${0.55 * k})` : `rgba(23,20,16,${0.65 * k})`;
+    g.lineWidth = 1.5 + R() * 4;
+    g.beginPath();
+    g.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0 * 0.6);
+    g.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1 * 0.6);
+    g.stroke();
+  }
+  if (p < 0.2) { g.fillStyle = `rgba(244,239,224,${(0.2 - p) * 4.2})`; g.beginPath(); g.arc(x, y, 26 + p * 240, 0, Math.PI * 2); g.fill(); }
   g.restore();
 }
 
