@@ -182,3 +182,8 @@ const ART2 = {
   113: ['ridge_dawn', 0.68],
 };
 for (const [k, a] of Object.entries(ART2)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }
+
+const ART3 = {
+  74: ['road_dusk', 0.62], 30: ['trench_night', 0.7], 31: ['trench_night', 0.7], 20: ['trench', 0.78],
+};
+for (const [k, a] of Object.entries(ART3)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }
