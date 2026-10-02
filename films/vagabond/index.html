@@ -1,0 +1,253 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: 'YujiSyuku'; src: url('./fonts/yuji_syuku.ttf'); }
+@font-face { font-family: 'FreeSerifX'; src: local('FreeSerif'); }
+html,body{margin:0;background:#000;overflow:hidden}
+canvas{display:block}
+</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script type="module">
+import { clamp, lerp, spring, rng, FEEL } from '../../lib/motion.js';
+import * as I from './ink.js';
+import { fig } from './puppet.js';
+import { shot, embers } from './shots.js';
+import { SHOTMAP } from './shotmap.js';
+import { sky, grounds } from './scenes.js';
+
+const W = 1920, H = 1080;
+const g = document.getElementById('c').getContext('2d');
+
+const plan = await (await fetch('./plan.json')).json();
+const D = plan.map(s => s.dur);
+
+const T_TITLE = 0, L_TITLE = 3;
+const T_OP = 3, L_OP = 91.5;
+const T_STORY = T_OP + L_OP;                  // 94.5
+const L_STORY = D.slice(0, 111).reduce((a, b) => a + b, 0);
+const T_ED = T_STORY + L_STORY, L_ED = 86.4;
+const T_PREV = T_ED + L_ED;
+const L_PREV = D.slice(111, 116).reduce((a, b) => a + b, 0);
+const DUR = T_PREV + L_PREV;
+
+// story shot start times
+const stStart = []; { let t = T_STORY; for (let i = 0; i < 111; i++) { stStart[i] = t; t += D[i]; } }
+const pvStart = []; { let t = T_PREV; for (let i = 111; i < 116; i++) { pvStart[i] = t; t += D[i]; } }
+
+function findShot(t, lo) {
+  const starts = lo === 0 ? stStart : pvStart;
+  for (let i = (lo === 0 ? 110 : 115); i >= lo; i--) if (t >= starts[i]) return i;
+  return lo;
+}
+
+// ---------- TITLE STAMP ----------
+function drawTitle(t) {
+  I.paper(g, W, H, '#17140f', 0.15, 0.05);
+  const p = spring(t - 0.4, 320, 26);
+  const ch = ['流', '浪', '人'];
+  ch.forEach((c, i) => {
+    const q = clamp(p * 3 - i, 0, 1);
+    if (q <= 0) return;
+    I.kanji(g, c, W / 2 + (i - 1) * 240 * (1 - q * 0.15), H / 2 + (1 - q) * 60, 200 * (0.7 + q * 0.3), I.MOON, q, 'YujiSyuku');
+  });
+  I.splat(g, W / 2, H * 0.75, 140, 5, clamp((t - 1.6) / 0.4), I.BLOOD, 0.5);
+}
+
+// ---------- OP (91.5s) ----------
+const OP_BEATS = [
+  { a: 0, b: 9, f: opMoonRise },
+  { a: 9, b: 20, f: opWalk },
+  { a: 20, b: 30, f: opSword },
+  { a: 30, b: 33, f: opFlash },
+  { a: 33, b: 36, f: opFlash2 },
+  { a: 36, b: 52, f: opBoysMoon },
+  { a: 52, b: 66, f: opDuel },
+  { a: 66, b: 91.5, f: opTitle },
+];
+function opMoonRise(t, lt) {
+  sky(g, W, H, 'night', t, W * 0.5, 90 + lt * 4);
+  const y0 = grounds.ridge(g, W, H, t, { horizon: 0.8 });
+  I.grass(g, W, H, y0, t, 5, 22, 3, I.INK_SOFT);
+  I.crows(g, W, H * 0.3, t, 4, 5);
+}
+function opWalk(t, lt) {
+  sky(g, W, H, 'night', t, W * 0.6, 150);
+  const y0 = grounds.ridge(g, W, H, t, { horizon: 0.78 });
+  I.grass(g, W, H, y0, t, 5, 26, 3, I.INK);
+  fig(g, W * (0.25 + lt * 0.015), y0 + (H - y0) * 0.5, { pose: 'walk', ph: t * 0.7, s: 95, facing: 1, hair: 'topknot', cloak: true });
+  I.crows(g, W, H * 0.35, t * 1.4, 6, 7);
+}
+function opSword(t, lt) {
+  I.paper(g, W, H, '#2e2b24', 0.2, 0.05);
+  const reveal = spring(lt - 0.5, 240, 20);
+  g.save(); g.translate(W * 0.15, H * 0.68); g.rotate(-0.4);
+  I.line(g, 0, 0, W * 0.7 * reveal, 0, 34, 9, '#1c1f26');
+  I.line(g, W * 0.14, -7, W * 0.68 * reveal, -5, 6, 2, '#969aa5', 0.9);
+  I.blob(g, -16, 0, 30, 3, '#14110d');
+  I.line(g, -130, 0, -16, 0, 30, 24, '#241d15');
+  g.restore();
+  if (reveal > 0.85) {
+    const k = ['流', '浪'];
+    k.forEach((c, i) => I.kanji(g, c, W * (0.3 + i * 0.2), H * 0.28, 150, I.MOON, clamp((lt - 5 - i * 1.2) / 0.5), 'YujiSyuku'));
+  }
+  I.splat(g, W * 0.78, H * 0.45, 170, 11, clamp((lt - 4) / 0.5), I.BLOOD, 0.7);
+}
+function opFlash(t, lt) { // iaido flash cut
+  I.paper(g, W, H, '#4a4234', 0.3, 0.07);
+  const p = clamp(lt / 0.5);
+  fig(g, W * 0.45, H * 0.72, { pose: 'swing', ph: p, s: 300, facing: 1, hair: 'topknot', cloak: true, prop: 'katana' });
+  I.line(g, W * (0.75 - p * 0.4), H * 0.2, W * (0.55 - p * 0.4), H * 0.9, 26, 4, I.MOON, 0.9 * (1 - p * 0.5));
+  I.splat(g, W * 0.6, H * 0.4, 200, 9, p, I.INK, 0.8);
+}
+function opFlash2(t, lt) {
+  I.paper(g, W, H, '#3a352c', 0.3, 0.07);
+  const p = clamp(lt / 0.5);
+  fig(g, W * 0.62, H * 0.7, { pose: 'lunge', ph: p, s: 290, facing: -1, hair: 'band', prop: 'bokuto' });
+  I.splat(g, W * 0.35, H * 0.35, 170, 13, p, I.BLOOD, 0.75);
+}
+function opBoysMoon(t, lt) {
+  sky(g, W, H, 'night', t, W * 0.5, 230);
+  const y0 = grounds.ridge(g, W, H, t, { horizon: 0.8 });
+  I.grass(g, W, H, y0, t, 3, 30, 4, I.INK);
+  fig(g, W * 0.43, y0 + (H - y0) * 0.55, { pose: 'stand', s: 80, facing: 1, hair: 'topknot', cloak: true });
+  fig(g, W * 0.55, y0 + (H - y0) * 0.57, { pose: 'stand', s: 76, facing: -1, hair: 'band' });
+  // petals/ash drifting
+  const R = rng(55);
+  g.fillStyle = 'rgba(233,226,207,0.5)';
+  for (let i = 0; i < 40; i++) {
+    const x = (R() * W + t * (20 + R() * 40)) % W, y = (R() * H + t * (8 + R() * 16)) % H;
+    g.globalAlpha = 0.2 + R() * 0.4; g.fillRect(x, y, 2.5, 2.5);
+  }
+  g.globalAlpha = 1;
+}
+function opDuel(t, lt) {
+  sky(g, W, H, 'fireglow', t, W * 0.3, 100);
+  const y0 = grounds.ridge(g, W, H, t, { horizon: 0.72, col: '#191410' });
+  embers(g, W, H, t, 40, 8);
+  const cyc = lt % 4;
+  fig(g, W * (0.34 + Math.sin(lt * 0.5) * 0.04), y0 + (H - y0) * 0.6, {
+    pose: cyc < 1 ? 'swing' : cyc < 2 ? 'lunge' : 'gripLow', ph: cyc < 2 ? (cyc % 1) : 0,
+    s: 160, facing: 1, hair: 'topknot', cloak: true, prop: 'katana',
+  });
+  fig(g, W * (0.66 - Math.sin(lt * 0.5) * 0.04), y0 + (H - y0) * 0.58, {
+    pose: cyc >= 2 && cyc < 3 ? 'swing' : 'gripLow', ph: cyc >= 2 && cyc < 3 ? cyc - 2 : 0,
+    s: 210, facing: -1, hair: 'none', cloak: true, prop: 'katana', propLen: 1.5,
+  });
+  if (cyc > 0.9 && cyc < 1.3 || cyc > 2.9 && cyc < 3.3) I.splat(g, W * 0.5, y0 * 0.9, 90, 21, 1, I.MOON, 0.5);
+}
+function opTitle(t, lt) {
+  I.paper(g, W, H, '#161310', 0.18, 0.05);
+  const inK = spring(lt - 1, 260, 24);
+  I.inkWipe(g, W, H, 1 - clamp(lt / 2.5), 77, 1);
+  // giant brush kanji right, latin left
+  const chars = ['流', '浪', '人'];
+  chars.forEach((c, i) => {
+    const q = clamp(inK * 2.4 - i * 0.55);
+    if (q > 0) I.kanji(g, c, W * 0.68, H * (0.2 + i * 0.24), 190 * (0.5 + q * 0.5), i === 2 ? I.BLOOD : I.MOON, q, 'YujiSyuku');
+  });
+  const tq = clamp((lt - 3) / 0.8);
+  if (tq > 0) {
+    g.save(); g.globalAlpha = tq;
+    g.font = '900 130px Georgia, "FreeSerif", serif';
+    g.fillStyle = I.MOON; g.textAlign = 'left';
+    g.fillText('VAGABOND', W * 0.09, H * 0.45);
+    g.font = '400 44px Georgia, serif'; g.fillStyle = 'rgba(233,226,207,0.75)';
+    g.fillText('第 壱 話  —  野 犬', W * 0.09, H * 0.55);
+    g.restore();
+    I.line(g, W * 0.09, H * 0.5, W * (0.09 + 0.45 * tq), H * 0.5, 6, 3, I.BLOOD, 0.9);
+  }
+  const fade = clamp((lt - 89.5) / 2);
+  if (fade > 0) { g.fillStyle = `rgba(10,9,7,${fade})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---------- ED (86.4s) ----------
+function drawED(t) {
+  // painterly scroll drift + wipe credit plates + つづく
+  const drift = t * 24;
+  sky(g, W, H, 'night', t, W * (0.3 + Math.sin(t * 0.02) * 0.1), 120);
+  grounds.ridge(g, W, H, t, { horizon: 0.78, seed: 44 });
+  I.grass(g, W, H, H * 0.78, t, 51, 20, 2, I.INK_SOFT);
+  I.crows(g, W, H * 0.3, t * 0.8, 8, 6);
+  I.fog(g, W, H, H * 0.6, t, 0.12);
+  // scrolling paint bands
+  g.save(); g.globalAlpha = 0.1; g.fillStyle = I.MOON;
+  for (let i = 0; i < 3; i++) g.fillRect(0, (H + 200 - ((drift * (1 + i * 0.4) + i * 400) % (H + 400))), W, 3);
+  g.restore();
+
+  const cards = [
+    { t0: 6, t1: 26, lines: ['VAGABOND', '第壱話 「野犬」', 'по манге Такэхико Иноуэ'], size: [110, 46, 34] },
+    { t0: 30, t1: 50, lines: ['режиссёр, монтаж, код', 'DEVIN · AImotion engine', 'рисунок — суми-э'], size: [42, 38, 34] },
+    { t0: 54, t1: 76, lines: ['つづく'], size: [160] },
+  ];
+  for (const c of cards) {
+    const p = clamp((t - c.t0) / 1.2) * clamp((c.t1 - t) / 1.2);
+    if (p <= 0) continue;
+    const w = spring(clamp((t - c.t0) / 1.4), 200, 18);
+    // ink wipe reveal: mask recedes left→right
+    g.save();
+    g.beginPath(); g.rect(W * 0.5 - 420 * w, H * 0.3, 840 * w, H * 0.42); g.clip();
+    g.globalAlpha = Math.min(1, p * 1.5);
+    c.lines.forEach((ln, i) => {
+      g.font = `${i === 0 ? 700 : 400} ${c.size[i]}px ${i === 0 && /[A-Z]/.test(ln) ? 'Georgia, serif' : '"YujiSyuku", Georgia, serif'}`;
+      g.textAlign = 'center'; g.fillStyle = i === 0 ? I.MOON : 'rgba(233,226,207,0.8)';
+      g.fillText(ln, W / 2, H * (0.42 + i * 0.12));
+    });
+    g.restore();
+    I.line(g, W * 0.5 - 400 * w, H * 0.32, W * 0.5 + 400 * w, H * 0.32, 4, 2, I.BLOOD, p);
+    I.line(g, W * 0.5 - 400 * w, H * 0.68, W * 0.5 + 400 * w, H * 0.68, 4, 2, I.BLOOD, p);
+  }
+  const fade = clamp((t - 84) / 2.4);
+  if (fade > 0) { g.fillStyle = `rgba(10,9,7,${fade})`; g.fillRect(0, 0, W, H); }
+}
+
+// ---------- frame dispatch ----------
+function seek(t) {
+  g.clearRect(0, 0, W, H);
+  if (t < T_TITLE + L_TITLE) { drawTitle(t); filmic(); return; }
+  if (t < T_OP + L_OP) {
+    const lt = t - T_OP;
+    const b = OP_BEATS.find(b => lt >= b.a && lt < b.b) || OP_BEATS[OP_BEATS.length - 1];
+    b.f(t, lt - b.a); filmic(); return;
+  }
+  if (t < T_ED) {
+    const i = findShot(t, 0);
+    const lt = t - stStart[i];
+    const S = SHOTMAP[i] || { g: 'field', sky: 'grey', cam: { mode: 'push' } };
+    shot(g, W, H, lt, D[i], S);
+    wipeEdge(lt, D[i], i); filmic(); return;
+  }
+  if (t < T_PREV) { drawED(t - T_ED); filmic(); return; }
+  const i = findShot(t, 111);
+  const lt = t - pvStart[i];
+  const S = SHOTMAP[i] || { g: 'ridge', sky: 'night', cam: { mode: 'push' } };
+  shot(g, W, H, lt, D[i], S);
+  wipeEdge(lt, D[i], i); filmic(); return;
+}
+
+// ink-bleed transition at shot head (stylized cut, ~10 frames)
+function wipeEdge(lt, dur, idx) {
+  const w = 0.28;
+  if (lt < w) I.inkWipe(g, W, H, 1 - lt / w, idx * 31 + 7, idx % 2 ? -1 : 1);
+}
+
+// ---------- grade: grain + unified tint ----------
+const grainTile = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const x = c.getContext('2d'); const d = x.createImageData(256, 256);
+  const R = rng(99);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 110 + R() * 60; d.data[i] = d.data[i+1] = d.data[i+2] = v; d.data[i+3] = 16; }
+  x.putImageData(d, 0, 0); return c;
+})();
+function filmic() {
+  // subtle warm-paper tint on edges via multiply vignette already per shot; add grain
+  g.save(); g.globalCompositeOperation = 'overlay';
+  const ox = (rng(1)() * 256) | 0;
+  g.globalAlpha = 0.5;
+  for (let y = -ox; y < H; y += 256) for (let x = -ox; x < W; x += 256) g.drawImage(grainTile, x, y);
+  g.restore();
+}
+
+window.FILM = { w: W, h: H, dur: DUR };
+window.seek = seek;
+window.READY = true;
+</script>
