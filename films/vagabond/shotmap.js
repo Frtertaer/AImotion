@@ -184,6 +184,14 @@ const ART2 = {
 for (const [k, a] of Object.entries(ART2)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }
 
 const ART3 = {
-  74: ['road_dusk', 0.62], 30: ['trench_night', 0.7], 31: ['trench_night', 0.7], 20: ['trench', 0.78],
+  74: ['road_dusk', 0.62], 30: ['trench_night', 0.7], 31: ['trench_night', 0.7], 20: ['trench2', 0.62],
 };
 for (const [k, a] of Object.entries(ART3)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1] }; } }
+
+// dusk-field shots get the amber battlefield plate; grey-field shots rotate two plates for dedup
+const ART4 = {
+  8: ['field_dusk', 0.62], 21: ['field_dusk', 0.62], 22: ['field_dusk', 0.62], 23: ['field_dusk', 0.62], 24: ['field_dusk', 0.62],
+  27: ['field_dusk', 0.62], 38: ['field_dusk', 0.62], 42: ['field_dusk', 0.62], 43: ['field_dusk', 0.62], 44: ['field_dusk', 0.62],
+  4: ['field_grey2', 0.55], 18: ['field_grey2', 0.55], 25: ['field_grey2', 0.55], 34: ['field_grey2', 0.55], 36: ['field_grey2', 0.55],
+};
+for (const [k, a] of Object.entries(ART4)) { const s = SHOTMAP[k]; if (s) { s.art = a[0] + '.png'; s.artO = { horizon: a[1], wash: 0.2 }; } }

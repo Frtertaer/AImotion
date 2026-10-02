@@ -290,9 +290,11 @@ export function fig(g, x, y, o) {
   g.save();
   if (o.alpha !== undefined) g.globalAlpha = o.alpha;
 
-  // shadow
-  g.fillStyle = 'rgba(23,20,16,0.25)';
-  g.beginPath(); g.ellipse(x, y + s * 0.02, s * 0.24, s * 0.035, 0, 0, Math.PI * 2); g.fill();
+  // shadow — wide soft contact pool + tight core under the feet
+  g.fillStyle = 'rgba(18,15,11,0.42)';
+  g.beginPath(); g.ellipse(x + s * 0.03, y + s * 0.025, s * 0.3, s * 0.045, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = 'rgba(18,15,11,0.5)';
+  g.beginPath(); g.ellipse(x + s * 0.02, y + s * 0.018, s * 0.16, s * 0.025, 0, 0, Math.PI * 2); g.fill();
 
   const w = (v) => v * s;
   // far limbs (dimmer)
@@ -350,6 +352,19 @@ export function fig(g, x, y, o) {
   // hand dabs
   blob(g, haL.x, haL.y, s * 0.025, 7, ink);
   blob(g, haR.x, haR.y, s * 0.025, 9, ink);
+
+  // rim light — pale edge on the up-left contour (plate light comes from upper-left sky)
+  const rim = 'rgba(230,222,200,0.6)';
+  line(g, head.x - hr * 0.62, head.y - hr * 0.5, head.x - hr * 0.02, head.y - hr * 0.95, s * 0.024, s * 0.012, rim, 0.85);
+  line(g, neck.x - s * 0.1, neck.y - s * 0.005, hip.x - s * 0.105, hip.y + s * 0.07, s * 0.026, s * 0.016, rim, 0.38);
+  if (o.cloak) line(g, sh.x - f * s * 0.15 + s * 0.02, sh.y + s * 0.3, sh.x - f * s * 0.19 + s * 0.03, sh.y + s * 0.48, s * 0.02, s * 0.008, rim, 0.3);
+
+  // dry-brush breaks across the torso fill — keeps the silhouette from reading flat on paint
+  for (let i = 0; i < 3; i++) {
+    const t2 = 0.28 + i * 0.2;
+    const bx = lerp(hip.x, neck.x, t2), by = lerp(hip.y, neck.y, t2);
+    line(g, bx - s * 0.05, by, bx + s * 0.05, by + s * 0.012, s * 0.007, s * 0.004, 'rgba(233,226,207,0.14)');
+  }
 
   // prop in right hand
   if (o.prop && o.prop !== 'none') {

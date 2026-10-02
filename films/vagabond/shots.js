@@ -51,7 +51,7 @@ export function shot(g, W, H, lt, dur, S) {
     const cr = Math.max(W / sw, H / sh);
     const dw = sw * cr, dh = sh * cr;
     g.drawImage(art, sx, sy, sw, sh, (W - dw) / 2 - (o.dx ?? 0) * dw, (H - dh) / 2 - (o.dy ?? 0) * dh, dw, dh);
-    g.fillStyle = 'rgba(23,20,16,0.16)'; g.fillRect(0, 0, W, H); // unifying ink wash over the plate
+    g.fillStyle = `rgba(23,20,16,${o.wash ?? 0.16})`; g.fillRect(0, 0, W, H); // unifying ink wash over the plate
     y0 = H * (o.horizon ?? 0.55);
   } else {
     y0 = (sky(g, W, H, S.sky, lt, S.moonX == null ? undefined : (S.moonX < 4 ? S.moonX * W : S.moonX), S.moonR), midSilhouette(g, W, H, lt, S), grounds[S.g](g, W, H, lt, S.gOpts || {}));
